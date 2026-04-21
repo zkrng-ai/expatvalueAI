@@ -65,14 +65,14 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
       wsData.push(['[상세 산출 과정 (Step-by-Step)]']);
       wsData.push(['Step 1. 국내 생계비(SI) 도출', `입력 연봉 ${formatNumber(result.baseSalary)}원 기준, 소득 구간별 SI 비중 ${result.siPercentage.toFixed(2)}%를 적용하여 ${formatNumber(result.baseSIAmount)}원이 산출되었습니다.`]);
       
-      const familyText = formData.familySize > 0 
-        ? `단신 기준 금액에 가족 동반 가산율(${result.familyMultiplier}배)을 적용하여 최종 국내 기준액은 ${formatNumber(result.finalSIAmount)}원입니다.`
-        : `단신 기준으로 가산율 적용 없이 최종 국내 기준액은 ${formatNumber(result.finalSIAmount)}원입니다.`;
+      const familyText = formData?.familyType === 'family' 
+        ? `가족 동반에 따른 가산율(${result.familyMultiplier}배)을 적용하여 최종 국내 기준액은 ${formatNumber(result.finalSIAmount)}원입니다.`
+        : `단신 부임으로 별도의 가산율 적용 없이 최종 국내 기준액은 ${formatNumber(result.finalSIAmount)}원입니다.`;
       wsData.push(['Step 2. 가족 가산 적용', familyText]);
       
       wsData.push(['Step 3. 도시별 물가 보전(COL)', `서울(100) 대비 파견지 상대 지수 ${(result.normalizedColMultiplier * 100).toFixed(1)}을 곱하여 보전 후 금액은 ${formatNumber(result.overseasLivingCostKRW)}원입니다.`]);
       
-      wsData.push(['Step 4. 통화 환산', `${adminData.exchangeData.meta.targetYear}년 연평균 환율 ${formatNumber(result.exchangeRate)}원을 적용하여 최종 현지 통화 ${formatNumber(result.finalLocalCurrencyAmount)} ${result.currency}가 산출되었습니다.`]);
+      wsData.push(['Step 4. 통화 환산', `${adminData.exchangeData.meta.targetYear}년 연평균 환율 ₩${new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(result.exchangeRate)}을 적용하여 최종 현지 통화 ${formatNumber(result.finalLocalCurrencyAmount)} ${result.currency}가 산출되었습니다.`]);
     }
 
     const ws = XLSX.utils.aoa_to_sheet(wsData);
@@ -178,9 +178,9 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
               <div className="bg-hcGray-50/50 p-4 rounded-lg border border-hcGray-100 flex-1">
                 <h4 className="font-bold text-hcNavy mb-1">가족 가산 적용</h4>
                 <p className="text-sm text-hcGray-800">
-                  {formData?.familySize > 0 
-                    ? <>단신 기준 금액에 가족 동반 가산율(<strong>{result?.familyMultiplier}배</strong>)을 적용하여 최종 국내 기준액은 <strong>{formatCurrency(result?.finalSIAmount, 'KRW')}</strong>입니다.</>
-                    : <>단신 기준으로 가산율 적용 없이 최종 국내 기준액은 <strong>{formatCurrency(result?.finalSIAmount, 'KRW')}</strong>입니다.</>
+                  {formData?.familyType === 'family' 
+                    ? <>가족 동반에 따른 가산율(<strong>{result?.familyMultiplier}배</strong>)을 적용하여 최종 국내 기준액은 <strong>{formatCurrency(result?.finalSIAmount, 'KRW')}</strong>입니다.</>
+                    : <>단신 부임으로 별도의 가산율 적용 없이 최종 국내 기준액은 <strong>{formatCurrency(result?.finalSIAmount, 'KRW')}</strong>입니다.</>
                   }
                 </p>
               </div>
@@ -201,7 +201,7 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
               <div className="bg-green-50/50 p-4 rounded-lg border border-green-100 flex-1">
                 <h4 className="font-bold text-green-900 mb-1">통화 환산</h4>
                 <p className="text-sm text-green-800">
-                  {adminData?.exchangeData.meta.targetYear}년 연평균 환율 <strong>{formatCurrency(result?.exchangeRate, 'KRW')}</strong>을 적용하여 최종 현지 통화 <strong>{formatCurrency(result?.finalLocalCurrencyAmount, result?.currency)} {result?.currency}</strong>가 산출되었습니다.
+                  {adminData?.exchangeData.meta.targetYear}년 연평균 환율 <strong>₩{new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(result?.exchangeRate)}</strong>을 적용하여 최종 현지 통화 <strong>{formatCurrency(result?.finalLocalCurrencyAmount, result?.currency)} {result?.currency}</strong>가 산출되었습니다.
                 </p>
               </div>
             </div>
