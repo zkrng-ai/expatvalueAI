@@ -194,6 +194,8 @@ function App() {
       familyMultiplier: familyMultiplier,
       finalSIAmount: finalSIAmount,
       normalizedColMultiplier: normalizedColMultiplier, // 1.70
+      rawHostCol: rawHostCol, // 82.61 - for fact check UI only
+      seoulBaseRpi: SEOUL_BASE_RPI, // 48.6 - for fact check UI only
       overseasLivingCostKRW: overseasLivingCostKRW,
       exchangeRate: exchangeRateNum,
       currency: formData.currency || 'KRW',
