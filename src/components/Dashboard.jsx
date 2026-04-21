@@ -184,8 +184,8 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
               </div>
               <div className="flex flex-wrap gap-2 text-[11px] text-hcGray-500 mt-4">
                 <span className="font-semibold bg-hcGray-100 px-1.5 py-0.5 rounded">트렌드 비교</span>
-                <span className="border border-hcGray-200 px-1.5 py-0.5 rounded">직전 분기('26년 Q1): {(result.rawHostCol * 1.02).toFixed(1)}</span>
-                <span className="border border-hcGray-200 px-1.5 py-0.5 rounded">전년 동기('25년 Q2): {(result.rawHostCol * 0.95).toFixed(1)}</span>
+                <span className="border border-hcGray-200 px-1.5 py-0.5 rounded">직전 분기('26년 Q1): {((result.normalizedColMultiplier * 100) * 1.02).toFixed(1)} (서울 100 대비)</span>
+                <span className="border border-hcGray-200 px-1.5 py-0.5 rounded">전년 동기('25년 Q2): {((result.normalizedColMultiplier * 100) * 0.95).toFixed(1)} (서울 100 대비)</span>
               </div>
             </div>
             
