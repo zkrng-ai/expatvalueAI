@@ -1,7 +1,6 @@
 import axios from 'axios';
 
 export default async function handler(req, res) {
-  // 1. 자동으로 직전년도 계산 (현재가 2026년이면 2025년 도출)
   const targetYear = new Date().getFullYear() - 1;
   const startDate = `${targetYear}0101`;
   const endDate = `${targetYear}1231`;
@@ -19,8 +18,6 @@ export default async function handler(req, res) {
       throw new Error('한국은행 ECOS API 키가 설정되지 않았습니다.');
     }
 
-    // 통계표코드 036Y001 (원/달러 환율 등), 항목코드 0000001 (원/달러)
-    // 실제 한국은행 API 스펙에 맞춰 호출
     const apiUrl = `https://api.bok.or.kr/ecos/${apiKey}/json/StatisticSearch/1/1000/036Y001/D/${startDate}/${endDate}/0000001`;
     const bokRes = await axios.get(apiUrl, { timeout: 5000 });
     
@@ -30,14 +27,14 @@ export default async function handler(req, res) {
       rows.forEach(row => { sum += parseFloat(row.DATA_VALUE); });
       const avgUsd = sum / rows.length;
       
-      // 데모를 위해 USD 외의 통화도 BOK 구조상 별도 호출이 필요하지만, 
-      // 예제에서는 USD는 BOK, 나머지는 Fallback에서 가져오거나 하드코딩 비율로 임시 적용할 수 있습니다.
-      // (완전한 BOK 데이터를 원하면 0000002(엔), 0000003(유로) 등을 병렬 호출해야 함)
       finalRates = { 
         'USD': avgUsd,
-        'GBP': avgUsd * 1.25, // Fallback ratio if missing
+        'GBP': avgUsd * 1.25, 
         'JPY': avgUsd * 0.0065,
         'EUR': avgUsd * 1.05,
+        'VND': avgUsd * 0.000039, // Static ratio fallback for VND
+        'SGD': avgUsd * 0.74, // Static ratio fallback for SGD
+        'SAR': avgUsd * 0.266, // Static ratio fallback for SAR
         'KRW': 1.0 
       };
       dataSource = '한국은행 ECOS';
@@ -47,7 +44,6 @@ export default async function handler(req, res) {
   } catch (error) {
     console.warn('한국은행 API 호출 실패, Frankfurter API로 Fallback 시도:', error.message);
     
-    // 2. 백업 소스: Frankfurter API (CORS 문제 없이 서버에서 안전하게 호출)
     try {
       const fetchAvgRate = async (fromCur) => {
         const url = `https://api.frankfurter.app/${frankfurterStart}..${frankfurterEnd}?from=${fromCur}&to=KRW`;
@@ -62,26 +58,32 @@ export default async function handler(req, res) {
         return sum / count;
       };
 
-      const [avgUSD, avgGBP, avgEUR] = await Promise.all([
+      const [avgUSD, avgGBP, avgEUR, avgSGD] = await Promise.all([
         fetchAvgRate('USD'),
         fetchAvgRate('GBP'),
-        fetchAvgRate('EUR')
+        fetchAvgRate('EUR'),
+        fetchAvgRate('SGD').catch(() => null) // SGD might be supported
       ]);
 
-      // JPY는 보통 100엔당 원화로 환산되는 경우가 많으므로 직접 확인 필요, 여기선 1엔당 가격으로 가져옴
-      const avgJPY = await fetchAvgRate('JPY') * 100; // 100엔 기준 표시용
+      const avgJPY = await fetchAvgRate('JPY') * 100;
+
+      // Frankfurter doesn't support VND and SAR reliably, apply static USD peg ratios
+      const avgVND = avgUSD * 0.000039;
+      const avgSAR = avgUSD * 0.266;
 
       finalRates = {
         'USD': avgUSD,
         'GBP': avgGBP,
-        'JPY': avgJPY / 100, // 내부 계산은 1엔 단위
+        'JPY': avgJPY / 100, 
         'EUR': avgEUR,
+        'SGD': avgSGD || avgUSD * 0.74,
+        'VND': avgVND,
+        'SAR': avgSAR,
         'KRW': 1.0
       };
       dataSource = 'Frankfurter API';
     } catch (fallbackError) {
       console.error('Frankfurter API까지 모두 실패했습니다:', fallbackError.message);
-      // 최종 최후의 Fallback (오프라인 모드 등)
       return res.status(200).json({
         meta: {
           lastUpdated: new Date().toISOString().split('T')[0],
@@ -94,6 +96,9 @@ export default async function handler(req, res) {
           'GBP': 1720.0,
           'JPY': 9.15,
           'EUR': 1480.0,
+          'VND': 0.055,
+          'SGD': 1025.0,
+          'SAR': 369.5,
           'KRW': 1.0
         }
       });

@@ -1,11 +1,14 @@
 export const CITY_CURRENCY_MAP = {
+  '워싱턴 D.C.': 'USD',
   '뉴욕': 'USD', 
   '로스앤젤레스': 'USD', 
-  '시카고': 'USD', 
-  '워싱턴 D.C.': 'USD',
+  '샌프란시스코': 'USD',
+  '프랑크푸르트': 'EUR',
   '런던': 'GBP', 
   '도쿄': 'JPY', 
-  '베를린': 'EUR', 
+  '하노이': 'VND',
+  '싱가포르': 'SGD',
+  '리야드': 'SAR',
   '서울': 'KRW', 
   '부산': 'KRW'
 };
@@ -21,6 +24,9 @@ export const FALLBACK_EXCHANGE_RATES = {
     'GBP': 1720.0,
     'JPY': 9.15,
     'EUR': 1480.0,
+    'VND': 0.055, // 1 VND = 0.055 KRW
+    'SGD': 1025.0, // 1 SGD = 1025.0 KRW
+    'SAR': 369.5, // 1 SAR = 369.5 KRW
     'KRW': 1.0
   }
 };

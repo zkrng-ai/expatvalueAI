@@ -3,6 +3,7 @@ import axios from 'axios';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import AdminModal from './components/AdminModal';
+import CustomCityModal from './components/CustomCityModal';
 import { STATE_DEPT_DATA } from './data/state_dept_indices';
 import { CITY_CURRENCY_MAP, FALLBACK_EXCHANGE_RATES } from './data/constants';
 import { calculateSIPercentage, calculateFamilySIAmount, calculateAdjustedCol } from './utils/calculator';
@@ -11,6 +12,8 @@ function App() {
   const [adminData, setAdminData] = useState(null);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isCustomCityOpen, setIsCustomCityOpen] = useState(false);
+  const [customCities, setCustomCities] = useState([]);
 
   const [formData, setFormData] = useState({
     homeCountry: '대한민국',
@@ -26,6 +29,31 @@ function App() {
   });
 
   const [result, setResult] = useState(null);
+
+  useEffect(() => {
+    const savedCustomCities = localStorage.getItem('expatValueCustomCities');
+    if (savedCustomCities) {
+      try {
+        setCustomCities(JSON.parse(savedCustomCities));
+      } catch (e) {
+        console.error("Failed to parse custom cities", e);
+      }
+    }
+  }, []);
+
+  const handleAddCustomCity = (cityData) => {
+    const updatedCities = [...customCities, cityData];
+    setCustomCities(updatedCities);
+    localStorage.setItem('expatValueCustomCities', JSON.stringify(updatedCities));
+    
+    // Auto-select the newly added city
+    setFormData(prev => ({
+      ...prev,
+      hostCity: cityData.city
+    }));
+    
+    setIsCustomCityOpen(false);
+  };
 
   // Data Fetching Logic (Using Vercel Serverless Function)
   const fetchExternalData = async (force = false) => {
@@ -44,13 +72,11 @@ function App() {
       let exchangeData;
       
       try {
-        // Vercel Serverless Function 호출 (CORS 해결 및 동적 평균 산출 로직 포함)
         const res = await axios.get('/api/exchange-rate', { timeout: 10000 });
         exchangeData = res.data;
       } catch (e) {
         console.warn("⚠️ [System] 백엔드(/api/exchange-rate) 호출 실패. 로컬 환경이거나 배포 에러입니다. 안전한 Fallback 데이터를 사용합니다.", e);
         
-        // 동적 연도 계산을 로컬에서도 반영
         const targetYear = new Date().getFullYear() - 1;
         exchangeData = {
           ...FALLBACK_EXCHANGE_RATES,
@@ -82,24 +108,32 @@ function App() {
     fetchExternalData();
   }, []);
 
-  // Form Auto-fill Logic
+  // Form Auto-fill Logic with Custom Cities Merge
   useEffect(() => {
     if (!adminData) return;
 
-    const indices = adminData.colData.indices;
+    // Merge custom cities dynamically
+    let mergedIndices = { ...adminData.colData.indices };
+    let mergedCurrencies = { ...adminData.cityCurrency };
+
+    customCities.forEach(c => {
+      mergedIndices[c.city] = c.rpi;
+      mergedCurrencies[c.city] = c.currency;
+    });
+
     const rates = adminData.exchangeData.rates;
-    const seoulBase = indices['서울'] || 48.6;
+    const seoulBase = mergedIndices['서울'] || 48.6;
 
     let hostColAdjusted = '';
     let exchangeRateValue = '';
     let currency = '';
 
-    if (formData.hostCity && indices[formData.hostCity]) {
-      const rawCol = indices[formData.hostCity];
+    if (formData.hostCity && mergedIndices[formData.hostCity]) {
+      const rawCol = mergedIndices[formData.hostCity];
       const adjustedCol = calculateAdjustedCol(rawCol, seoulBase);
       hostColAdjusted = adjustedCol.toFixed(2);
       
-      currency = adminData.cityCurrency[formData.hostCity] || 'KRW';
+      currency = mergedCurrencies[formData.hostCity] || 'KRW';
       exchangeRateValue = rates[currency] ? rates[currency].toString() : '1';
     }
 
@@ -111,7 +145,7 @@ function App() {
       currency: currency || 'KRW'
     }));
     
-  }, [formData.hostCity, adminData]);
+  }, [formData.hostCity, adminData, customCities]);
 
   const handleCalculate = () => {
     if (!formData.baseSalary || !formData.homeCol || !formData.hostCol || !formData.exchangeRate) {
@@ -124,9 +158,12 @@ function App() {
     const hostColNum = parseFloat(formData.hostCol) || 100;
     const exchangeRateNum = parseFloat(formData.exchangeRate) || 1;
     
-    // 원본 인덱스 로드 (검증 패널용)
-    const rawHomeCol = adminData?.colData.indices[formData.homeCity] || 100;
-    const rawHostCol = adminData?.colData.indices[formData.hostCity] || 100;
+    // Merge custom cities to fetch raw indices
+    let mergedIndices = { ...(adminData?.colData.indices || {}) };
+    customCities.forEach(c => { mergedIndices[c.city] = c.rpi; });
+
+    const rawHomeCol = mergedIndices[formData.homeCity] || 100;
+    const rawHostCol = mergedIndices[formData.hostCity] || 100;
     
     const siPercentage = calculateSIPercentage(baseSalaryNum);
     const baseSIAmount = baseSalaryNum * (siPercentage / 100);
@@ -175,6 +212,10 @@ function App() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'hostCity' && value === '__CUSTOM__') {
+      setIsCustomCityOpen(true);
+      return;
+    }
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -203,6 +244,7 @@ function App() {
           onReset={handleReset} 
           onOpenAdmin={() => setIsAdminOpen(true)}
           isDataLoading={isDataLoading}
+          customCities={customCities}
         />
       </div>
       <div className="flex-1 h-full relative">
@@ -222,6 +264,18 @@ function App() {
             setIsAdminOpen(false);
             fetchExternalData(true);
           }}
+        />
+      )}
+      {isCustomCityOpen && (
+        <CustomCityModal 
+          onClose={() => {
+            setIsCustomCityOpen(false);
+            // Reset to empty if cancelled
+            if (formData.hostCity === '__CUSTOM__') {
+              setFormData(prev => ({ ...prev, hostCity: '' }));
+            }
+          }}
+          onSave={handleAddCustomCity}
         />
       )}
     </div>

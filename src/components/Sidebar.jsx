@@ -1,7 +1,33 @@
 import React from 'react';
 import { Calculator, MapPin, Users, Coins, Globe, Settings } from 'lucide-react';
 
-function Sidebar({ formData, onChange, onSalaryChange, onCalculate, onReset, onOpenAdmin, isDataLoading }) {
+function Sidebar({ formData, onChange, onSalaryChange, onCalculate, onReset, onOpenAdmin, isDataLoading, customCities }) {
+  
+  const presets = {
+    '대한민국': ['서울', '부산'],
+    '미국': ['뉴욕', '로스앤젤레스', '샌프란시스코', '워싱턴 D.C.'],
+    '독일': ['프랑크푸르트'],
+    '일본': ['도쿄'],
+    '영국': ['런던'],
+    '베트남': ['하노이'],
+    '싱가포르': ['싱가포르'],
+    '사우디아라비아': ['리야드']
+  };
+
+  // Merge custom cities into presets
+  const displayGroups = { ...presets };
+  
+  if (customCities && customCities.length > 0) {
+    customCities.forEach(c => {
+      if (!displayGroups[c.country]) {
+        displayGroups[c.country] = [];
+      }
+      if (!displayGroups[c.country].includes(c.city)) {
+        displayGroups[c.country].push(c.city);
+      }
+    });
+  }
+
   return (
     <div className="h-full bg-white flex flex-col border-r border-hcGray-100 relative">
       {isDataLoading && (
@@ -32,21 +58,25 @@ function Sidebar({ formData, onChange, onSalaryChange, onCalculate, onReset, onO
             <div>
               <label className="block text-xs font-semibold text-hcGray-800 mb-1">Home (파견국)</label>
               <select name="homeCity" value={formData.homeCity} onChange={onChange} className="w-full p-2.5 bg-hcGray-50 border border-hcGray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-hcBlue">
-                <option value="서울">서울</option>
-                <option value="부산">부산</option>
+                {displayGroups['대한민국']?.map(city => (
+                  <option key={`home-${city}`} value={city}>{city}</option>
+                ))}
               </select>
             </div>
             <div>
               <label className="block text-xs font-semibold text-hcGray-800 mb-1">Host (부임도시)</label>
               <select name="hostCity" value={formData.hostCity} onChange={onChange} className="w-full p-2.5 bg-hcGray-50 border border-hcGray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-hcBlue">
                 <option value="">선택하세요</option>
-                <option value="워싱턴 D.C.">미국 워싱턴 D.C.</option>
-                <option value="뉴욕">미국 뉴욕</option>
-                <option value="로스앤젤레스">미국 LA</option>
-                <option value="시카고">미국 시카고</option>
-                <option value="런던">영국 런던</option>
-                <option value="도쿄">일본 도쿄</option>
-                <option value="베를린">독일 베를린</option>
+                {Object.entries(displayGroups).map(([country, cities]) => (
+                  <optgroup key={`host-group-${country}`} label={country}>
+                    {cities.map(city => (
+                      <option key={`host-${city}`} value={city}>{city}</option>
+                    ))}
+                  </optgroup>
+                ))}
+                <optgroup label="---------">
+                  <option value="__CUSTOM__" className="text-hcBlue font-bold">+ 리스트에 없는 도시 직접 입력</option>
+                </optgroup>
               </select>
             </div>
           </div>
