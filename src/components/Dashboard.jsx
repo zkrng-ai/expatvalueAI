@@ -23,9 +23,9 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
         <div className="h-10 bg-hcGray-200 rounded w-1/3 mb-4 animate-pulse"></div>
         <div className="h-4 bg-hcGray-200 rounded w-2/3 mb-12 animate-pulse"></div>
         
-        <div className="bg-white rounded-xl shadow-sm border border-hcGray-100 p-8 mb-8 animate-pulse">
-           <div className="h-6 bg-hcGray-200 rounded w-1/4 mb-4"></div>
-           <div className="h-12 bg-hcGray-200 rounded w-1/2"></div>
+        <div className="bg-white rounded-xl shadow-sm border border-hcGray-100 p-8 mb-8 animate-pulse flex flex-col items-center justify-center min-h-[150px]">
+           <div className="w-8 h-8 border-4 border-hcGray-200 border-t-hcBlue rounded-full animate-spin mb-3"></div>
+           <p className="text-sm font-bold text-hcNavy">최신 환율 정보를 계산 중입니다...</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-hcGray-100 p-8 animate-pulse flex-1">
@@ -85,9 +85,9 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
               {isReady ? formatCurrency(result.overseasLivingCostKRW, 'KRW') : '-'}
             </span>
           </div>
-          {isReady && (
+          {isReady && adminData && (
             <div className="text-xs font-medium text-hcGray-800 px-3 py-1 bg-hcGray-50 rounded-md border border-hcGray-200">
-              직전년도 연평균 환율 적용: 1 {result.currency} = {formatNumber(result.exchangeRate)} KRW
+              1 {result.currency} = {formatNumber(result.exchangeRate)} KRW ({adminData.exchangeData.meta.targetYear}년 {adminData.exchangeData.meta.source} 기준 연평균 환율)
             </div>
           )}
         </div>
@@ -184,7 +184,7 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
               <a href={adminData.colData.sourceUrl} target="_blank" rel="noreferrer" className="ml-2 underline text-hcBlue">Source</a>
             </div>
             <div>
-              <span className="opacity-70">Exchange Rates:</span> <strong className="ml-1">{adminData.exchangeData.meta.lastUpdated}</strong>
+              <span className="opacity-70">Exchange Rates:</span> <strong className="ml-1">{adminData.exchangeData.meta.lastUpdated} ({adminData.exchangeData.meta.source})</strong>
             </div>
           </div>
         </div>

@@ -7,7 +7,7 @@ function Sidebar({ formData, onChange, onSalaryChange, onCalculate, onReset, onO
       {isDataLoading && (
         <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-20 flex flex-col items-center justify-center">
           <div className="w-10 h-10 border-4 border-hcGray-200 border-t-hcBlue rounded-full animate-spin mb-3"></div>
-          <p className="text-sm font-bold text-hcNavy">공공 데이터 동기화 중...</p>
+          <p className="text-sm font-bold text-hcNavy">최신 환율 정보를 계산 중입니다...</p>
         </div>
       )}
       <div className="p-6 bg-hcNavy text-white flex justify-between items-start">

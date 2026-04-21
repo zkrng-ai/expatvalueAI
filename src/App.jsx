@@ -27,7 +27,7 @@ function App() {
 
   const [result, setResult] = useState(null);
 
-  // Data Fetching Logic (Try-Catch with Fallback)
+  // Data Fetching Logic (Using Vercel Serverless Function)
   const fetchExternalData = async (force = false) => {
     setIsDataLoading(true);
     
@@ -41,28 +41,29 @@ function App() {
         }
       }
 
-      let bokData;
+      let exchangeData;
       
-      // VITE_API_KEY_ENARA 키 유무를 먼저 검사하여 불필요한 빨간색 Network Error(콘솔 에러) 방지
-      const apiKey = import.meta.env.VITE_API_KEY_ENARA;
-      
-      if (!apiKey || apiKey === 'your_enara_or_bok_api_key_here') {
-        console.log("✅ [System] API Key 미설정: Vercel 환경 변수가 없어 내장된 안전한 Fallback(기준) 데이터를 로드합니다.");
-        bokData = FALLBACK_EXCHANGE_RATES;
-      } else {
-        try {
-          const apiUrl = `https://api.bok.or.kr/ecos/${apiKey}/json`;
-          const res = await axios.get(apiUrl, { timeout: 3000 });
-          bokData = res.data;
-        } catch (e) {
-          console.warn("⚠️ [System] BOK ECOS API 호출 실패. 안전한 Fallback 데이터를 사용합니다.", e);
-          bokData = FALLBACK_EXCHANGE_RATES;
-        }
+      try {
+        // Vercel Serverless Function 호출 (CORS 해결 및 동적 평균 산출 로직 포함)
+        const res = await axios.get('/api/exchange-rate', { timeout: 10000 });
+        exchangeData = res.data;
+      } catch (e) {
+        console.warn("⚠️ [System] 백엔드(/api/exchange-rate) 호출 실패. 로컬 환경이거나 배포 에러입니다. 안전한 Fallback 데이터를 사용합니다.", e);
+        
+        // 동적 연도 계산을 로컬에서도 반영
+        const targetYear = new Date().getFullYear() - 1;
+        exchangeData = {
+          ...FALLBACK_EXCHANGE_RATES,
+          meta: {
+            ...FALLBACK_EXCHANGE_RATES.meta,
+            targetYear: targetYear
+          }
+        };
       }
 
       const newData = {
         colData: STATE_DEPT_DATA,
-        exchangeData: bokData,
+        exchangeData: exchangeData,
         cityCurrency: CITY_CURRENCY_MAP
       };
 
