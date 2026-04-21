@@ -45,7 +45,7 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
       <header className="mb-8">
         <h2 className="text-3xl font-bold text-hcNavy tracking-tight">해외 생계비 산정 결과</h2>
         <p className="text-hcGray-800 mt-2 text-sm">
-          MERCER 기반 SI 산출 및 미 국무부(U.S. DOS) 기반 공공 물가 지수 동기화 결과
+          MERCER 기반 SI 산출 및 서울 기준 정규화 COL 지수 동기화 결과
         </p>
       </header>
 
@@ -71,7 +71,7 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
             </div>
             <ArrowRight className="w-5 h-5 opacity-50" />
             <div className="text-center">
-              <div className="text-xs opacity-80 mb-1">{formData.hostCity || 'Host'} (COL 지수)</div>
+              <div className="text-xs opacity-80 mb-1">{formData.hostCity || 'Host'} (정규화 COL)</div>
               <div className="font-semibold text-2xl text-yellow-300">{isReady ? result.hostCol : formData.hostCol || '-'}</div>
             </div>
           </div>
@@ -87,7 +87,7 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
           </div>
           {isReady && adminData && (
             <div className="text-xs font-medium text-hcGray-800 px-3 py-1 bg-hcGray-50 rounded-md border border-hcGray-200">
-              1 {result.currency} = {formatNumber(result.exchangeRate)} KRW ({adminData.exchangeData.meta.targetYear}년 {adminData.exchangeData.meta.source} 기준 연평균 환율)
+              1 {result.currency} = {formatNumber(result.exchangeRate)} KRW ({adminData.exchangeData.meta.targetYear}년 {adminData.exchangeData.meta.source} 기준)
             </div>
           )}
         </div>
@@ -96,7 +96,7 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
       <div className="bg-white rounded-xl shadow-sm border border-hcGray-100 flex-1 overflow-hidden flex flex-col mb-8">
         <div className="p-5 border-b border-hcGray-100 flex items-center gap-2 bg-hcGray-50/50">
           <FileText className="w-5 h-5 text-hcNavy" />
-          <h3 className="text-lg font-bold text-hcNavy">산출 근거 및 검증 패널 (투명 공개)</h3>
+          <h3 className="text-lg font-bold text-hcNavy">산출 수식 검증 (직관적 숫자 표기)</h3>
         </div>
         
         <div className="overflow-x-auto">
@@ -112,10 +112,10 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
               <tr className="hover:bg-hcGray-50/50 transition-colors">
                 <td className="px-6 py-4 font-bold flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-hcBlue block"></span>
-                  SI 비율 적용값
+                  SI 비율 적용
                 </td>
                 <td className="px-6 py-4 text-hcGray-800 font-mono text-xs bg-hcGray-50/30">
-                  {isReady ? `기본연봉(${formatNumber(result.baseSalary)}) × 보간 적용 SI비율(${result.siPercentage.toFixed(2)}%)` : '-'}
+                  {isReady ? `${formatNumber(result.baseSalary)} × ${result.siPercentage.toFixed(2)}%` : '-'}
                 </td>
                 <td className="px-6 py-4 text-right font-bold text-hcBlue">
                   {isReady ? formatCurrency(result.baseSIAmount, 'KRW') : '-'}
@@ -124,44 +124,24 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
               <tr className="hover:bg-hcGray-50/50 transition-colors">
                 <td className="px-6 py-4 font-bold flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-400 block"></span>
-                  가족 가산 내역
+                  가족 가산
                 </td>
                 <td className="px-6 py-4 text-hcGray-800 font-mono text-xs bg-hcGray-50/30">
-                  {isReady ? `단신 SI금액 × 가산율(${result.familyMultiplier})` : '-'}
+                  {isReady ? `${formatNumber(result.baseSIAmount)} × ${result.familyMultiplier}` : '-'}
                 </td>
                 <td className="px-6 py-4 text-right font-bold text-blue-600">
                   {isReady ? formatCurrency(result.finalSIAmount, 'KRW') : '-'}
                 </td>
               </tr>
-              <tr className="hover:bg-hcGray-50/50 transition-colors">
-                <td className="px-6 py-4 font-bold flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 block"></span>
-                  서울 대비 상대 물가지수 (COL)
-                </td>
-                <td className="px-6 py-4 text-hcGray-800 font-mono text-xs bg-indigo-50/30">
-                  {isReady ? (
-                    <div className="flex items-center gap-2">
-                      <div className="flex flex-col items-center">
-                        <span className="border-b border-hcGray-800 px-1 pb-0.5">Host 원본 RPI ({result.rawHostCol})</span>
-                        <span className="pt-0.5">Home 원본 RPI ({result.rawHomeCol})</span>
-                      </div>
-                      <span className="text-lg">× 100</span>
-                    </div>
-                  ) : '-'}
-                </td>
-                <td className="px-6 py-4 text-right font-bold text-indigo-600 text-lg">
-                  {isReady ? `${formatNumber(result.hostCol)}` : '-'}
-                </td>
-              </tr>
               <tr className="hover:bg-hcGray-50/50 transition-colors bg-purple-50/10">
                 <td className="px-6 py-4 font-bold flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-purple-400 block"></span>
-                  최종 환율 및 환산
+                  최종 산식 (정규화 COL 및 환율)
                 </td>
-                <td className="px-6 py-4 text-hcGray-800 font-mono text-xs bg-purple-50/20">
-                  {isReady ? `(가족 가산 내역 × (상대 물가지수 / 100)) ÷ 환율(${formatNumber(result.exchangeRate)})` : '-'}
+                <td className="px-6 py-4 text-hcGray-800 font-mono text-base font-bold bg-purple-50/20 text-purple-900">
+                  {isReady ? `(${formatNumber(result.finalSIAmount)} × ${(result.relativeColPercentage / 100).toFixed(2)}) ÷ ${formatNumber(result.exchangeRate)}` : '-'}
                 </td>
-                <td className="px-6 py-4 text-right font-black text-purple-700 text-base">
+                <td className="px-6 py-4 text-right font-black text-purple-700 text-lg">
                   {isReady ? formatCurrency(result.finalLocalCurrencyAmount, result.currency) : '-'}
                 </td>
               </tr>
@@ -174,8 +154,7 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
             <DollarSign className="w-12 h-12 text-hcGray-200 mb-3" />
             <p className="font-medium">모든 정보를 입력한 후 '생계비 산정 실행' 버튼을 클릭해주세요.</p>
             <p className="text-sm mt-1 text-hcGray-800 bg-yellow-50 p-2 rounded text-yellow-800 border border-yellow-200 mt-4 text-center">
-              💡 본 지수는 미 국무부 데이터를 바탕으로 <strong>서울(100) 대비 상대 물가를 산출한 결과</strong>입니다.<br/>
-              (예: 도쿄 82.61 / 서울 48.6 = 최종 COL 170.0)
+              💡 본 지수는 미 국무부 데이터를 바탕으로 <strong>서울(100) 대비 상대 물가를 산출한 정규화 지수</strong>를 기준으로 산출됩니다.
             </p>
           </div>
         )}
