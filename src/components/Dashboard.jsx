@@ -1,8 +1,10 @@
-import React from 'react';
-import { FileText, ArrowRight, Info, DollarSign, CheckCircle, ShieldCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileText, ArrowRight, Info, DollarSign, CheckCircle, ShieldCheck, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 function Dashboard({ formData, result, adminData, isDataLoading }) {
   const isReady = result !== null;
+  const [isAccordionOpen, setIsAccordionOpen] = useState(false);
 
   const formatCurrency = (val, currency) => {
     if (val === undefined || val === null) return '0';
@@ -40,13 +42,64 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
     );
   }
 
+  const handleExportExcel = () => {
+    if (!isReady) return;
+    
+    const wsData = [];
+    
+    // 1. 기본 입력 정보
+    wsData.push(['[기본 입력 정보]']);
+    wsData.push(['국내 기본연봉', formatCurrency(result.baseSalary, 'KRW')]);
+    wsData.push(['동반 가족 수', `${formData.familySize}명`]);
+    wsData.push(['파견 국가/도시', `${formData.country} / ${formData.hostCity}`]);
+    wsData.push([]);
+    
+    // 2. 최종 산출 결과 요약
+    wsData.push(['[최종 산출 결과 요약]']);
+    wsData.push(['환산 전 원화 생계비', formatCurrency(result.overseasLivingCostKRW, 'KRW')]);
+    wsData.push(['최종 해외 생계비 (현지통화)', `${formatCurrency(result.finalLocalCurrencyAmount, result.currency)} ${result.currency}`]);
+    wsData.push([]);
+    
+    // 3. 상세 산출 과정 (아코디언 열려있을 때만)
+    if (isAccordionOpen) {
+      wsData.push(['[상세 산출 과정 (Step-by-Step)]']);
+      wsData.push(['Step 1. 국내 생계비(SI) 도출', `입력 연봉 ${formatNumber(result.baseSalary)}원 기준, 소득 구간별 SI 비중 ${result.siPercentage.toFixed(2)}%를 적용하여 ${formatNumber(result.baseSIAmount)}원이 산출되었습니다.`]);
+      
+      const familyText = formData.familySize > 0 
+        ? `단신 기준 금액에 가족 동반 가산율(${result.familyMultiplier}배)을 적용하여 최종 국내 기준액은 ${formatNumber(result.finalSIAmount)}원입니다.`
+        : `단신 기준으로 가산율 적용 없이 최종 국내 기준액은 ${formatNumber(result.finalSIAmount)}원입니다.`;
+      wsData.push(['Step 2. 가족 가산 적용', familyText]);
+      
+      wsData.push(['Step 3. 도시별 물가 보전(COL)', `서울(100) 대비 파견지 상대 지수 ${(result.normalizedColMultiplier * 100).toFixed(1)}을 곱하여 보전 후 금액은 ${formatNumber(result.overseasLivingCostKRW)}원입니다.`]);
+      
+      wsData.push(['Step 4. 통화 환산', `${adminData.exchangeData.meta.targetYear}년 연평균 환율 ${formatNumber(result.exchangeRate)}원을 적용하여 최종 현지 통화 ${formatNumber(result.finalLocalCurrencyAmount)} ${result.currency}가 산출되었습니다.`]);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "생계비 산출 내역");
+    
+    XLSX.writeFile(wb, `ExpatValue_산출내역_${formData.hostCity}.xlsx`);
+  };
+
   return (
     <div className="p-8 h-full bg-hcGray-50 flex flex-col overflow-y-auto relative pb-24">
-      <header className="mb-8">
-        <h2 className="text-3xl font-bold text-hcNavy tracking-tight">해외 생계비 산정 결과</h2>
-        <p className="text-hcGray-800 mt-2 text-sm">
-          MERCER 기반 SI 산출 및 서울 기준 정규화 COL 지수 동기화 결과
-        </p>
+      <header className="mb-8 flex justify-between items-end">
+        <div>
+          <h2 className="text-3xl font-bold text-hcNavy tracking-tight">해외 생계비 산정 결과</h2>
+          <p className="text-hcGray-800 mt-2 text-sm">
+            MERCER 기반 SI 산출 및 서울 기준 정규화 COL 지수 동기화 결과
+          </p>
+        </div>
+        {isReady && (
+          <button 
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-bold text-sm shadow-sm transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            엑셀로 저장 (Download)
+          </button>
+        )}
       </header>
 
       <div className="bg-white rounded-xl shadow-sm border border-hcGray-100 overflow-hidden mb-8 transition-all duration-300">
@@ -93,63 +146,72 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-hcGray-100 flex-1 overflow-hidden flex flex-col mb-8">
-        <div className="p-5 border-b border-hcGray-100 flex items-center gap-2 bg-hcGray-50/50">
-          <FileText className="w-5 h-5 text-hcNavy" />
-          <h3 className="text-lg font-bold text-hcNavy">산출 수식 검증 (직관적 숫자 표기)</h3>
+      {/* Accordion Toggle Button */}
+      {isReady && (
+        <button 
+          onClick={() => setIsAccordionOpen(!isAccordionOpen)}
+          className="w-full flex items-center justify-center gap-2 bg-white border border-hcGray-200 text-hcNavy font-bold py-3 rounded-xl shadow-sm hover:bg-hcGray-50 transition-colors mb-4"
+        >
+          <FileText className="w-5 h-5" />
+          상세 산출 근거 확인하기 {isAccordionOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+        </button>
+      )}
+
+      {/* Accordion Content */}
+      <div className={`transition-all duration-500 overflow-hidden ${isAccordionOpen && isReady ? 'max-h-[1000px] mb-8 opacity-100' : 'max-h-0 mb-0 opacity-0'}`}>
+        <div className="bg-white rounded-xl shadow-sm border border-hcGray-100 flex-1 flex flex-col">
+          <div className="p-6 space-y-4 relative">
+            <div className="absolute left-[39px] top-10 bottom-10 w-0.5 bg-hcGray-100 z-0"></div>
+            
+            <div className="relative z-10 flex items-start gap-4">
+              <div className="w-8 h-8 rounded-full bg-hcBlue text-white flex items-center justify-center font-bold text-sm shrink-0 border-4 border-white shadow-sm">1</div>
+              <div className="bg-hcGray-50/50 p-4 rounded-lg border border-hcGray-100 flex-1">
+                <h4 className="font-bold text-hcNavy mb-1">국내 생계비(SI) 도출</h4>
+                <p className="text-sm text-hcGray-800">
+                  입력 연봉 <strong>{formatCurrency(result?.baseSalary, 'KRW')}</strong> 기준, 소득 구간별 SI 비중 <strong>{result?.siPercentage.toFixed(2)}%</strong>를 적용하여 <strong>{formatCurrency(result?.baseSIAmount, 'KRW')}</strong>이 산출되었습니다.
+                </p>
+              </div>
+            </div>
+
+            <div className="relative z-10 flex items-start gap-4">
+              <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm shrink-0 border-4 border-white shadow-sm">2</div>
+              <div className="bg-hcGray-50/50 p-4 rounded-lg border border-hcGray-100 flex-1">
+                <h4 className="font-bold text-hcNavy mb-1">가족 가산 적용</h4>
+                <p className="text-sm text-hcGray-800">
+                  {formData?.familySize > 0 
+                    ? <>단신 기준 금액에 가족 동반 가산율(<strong>{result?.familyMultiplier}배</strong>)을 적용하여 최종 국내 기준액은 <strong>{formatCurrency(result?.finalSIAmount, 'KRW')}</strong>입니다.</>
+                    : <>단신 기준으로 가산율 적용 없이 최종 국내 기준액은 <strong>{formatCurrency(result?.finalSIAmount, 'KRW')}</strong>입니다.</>
+                  }
+                </p>
+              </div>
+            </div>
+
+            <div className="relative z-10 flex items-start gap-4">
+              <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-sm shrink-0 border-4 border-white shadow-sm">3</div>
+              <div className="bg-purple-50/50 p-4 rounded-lg border border-purple-100 flex-1">
+                <h4 className="font-bold text-purple-900 mb-1">도시별 물가 보전(COL)</h4>
+                <p className="text-sm text-purple-800">
+                  서울(100) 대비 파견지 상대 지수 <strong>{(result?.normalizedColMultiplier * 100)?.toFixed(1)}</strong>을 곱하여 보전 후 금액은 <strong>{formatCurrency(result?.overseasLivingCostKRW, 'KRW')}</strong>입니다.
+                </p>
+              </div>
+            </div>
+
+            <div className="relative z-10 flex items-start gap-4">
+              <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-sm shrink-0 border-4 border-white shadow-sm">4</div>
+              <div className="bg-green-50/50 p-4 rounded-lg border border-green-100 flex-1">
+                <h4 className="font-bold text-green-900 mb-1">통화 환산</h4>
+                <p className="text-sm text-green-800">
+                  {adminData?.exchangeData.meta.targetYear}년 연평균 환율 <strong>{formatCurrency(result?.exchangeRate, 'KRW')}</strong>을 적용하여 최종 현지 통화 <strong>{formatCurrency(result?.finalLocalCurrencyAmount, result?.currency)} {result?.currency}</strong>가 산출되었습니다.
+                </p>
+              </div>
+            </div>
+
+          </div>
         </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-hcGray-50 text-hcGray-800 font-semibold border-b border-hcGray-200 text-xs">
-              <tr>
-                <th className="px-6 py-4 w-1/4">항목</th>
-                <th className="px-6 py-4 w-1/2">적용 수식 (Formula)</th>
-                <th className="px-6 py-4 text-right w-1/4">산출액 / 비율</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-hcGray-100 text-hcGray-900">
-              <tr className="hover:bg-hcGray-50/50 transition-colors">
-                <td className="px-6 py-4 font-bold flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-hcBlue block"></span>
-                  SI 비율 적용
-                </td>
-                <td className="px-6 py-4 text-hcGray-800 font-mono text-xs bg-hcGray-50/30">
-                  {isReady ? `${formatNumber(result.baseSalary)} × ${result.siPercentage.toFixed(2)}%` : '-'}
-                </td>
-                <td className="px-6 py-4 text-right font-bold text-hcBlue">
-                  {isReady ? formatCurrency(result.baseSIAmount, 'KRW') : '-'}
-                </td>
-              </tr>
-              <tr className="hover:bg-hcGray-50/50 transition-colors">
-                <td className="px-6 py-4 font-bold flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 block"></span>
-                  가족 가산
-                </td>
-                <td className="px-6 py-4 text-hcGray-800 font-mono text-xs bg-hcGray-50/30">
-                  {isReady ? `${formatNumber(result.baseSIAmount)} × ${result.familyMultiplier}` : '-'}
-                </td>
-                <td className="px-6 py-4 text-right font-bold text-blue-600">
-                  {isReady ? formatCurrency(result.finalSIAmount, 'KRW') : '-'}
-                </td>
-              </tr>
-              <tr className="hover:bg-hcGray-50/50 transition-colors bg-purple-50/10">
-                <td className="px-6 py-4 font-bold flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400 block"></span>
-                  최종 산식 (정규화 배율 및 환율)
-                </td>
-                <td className="px-6 py-4 text-hcGray-800 font-mono text-base font-bold bg-purple-50/20 text-purple-900">
-                  {isReady ? `(${formatNumber(result.finalSIAmount)} × ${result.normalizedColMultiplier.toFixed(2)}) ÷ ${formatNumber(result.exchangeRate)}` : '-'}
-                </td>
-                <td className="px-6 py-4 text-right font-black text-purple-700 text-lg">
-                  {isReady ? formatCurrency(result.finalLocalCurrencyAmount, result.currency) : '-'}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        
-        {!isReady && (
+      </div>
+
+      {!isReady && (
+        <div className="bg-white rounded-xl shadow-sm border border-hcGray-100 flex-1 overflow-hidden flex flex-col mb-8">
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-hcGray-800">
             <DollarSign className="w-12 h-12 text-hcGray-200 mb-3" />
             <p className="font-medium">모든 정보를 입력한 후 '생계비 산정 실행' 버튼을 클릭해주세요.</p>
@@ -157,8 +219,8 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
               💡 본 지수는 미 국무부 데이터를 바탕으로 <strong>서울(100) 대비 상대 물가를 산출한 정규화 지수</strong>를 기준으로 산출됩니다.
             </p>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {isReady && adminData && (
         <div className="bg-hcGray-100/50 rounded-xl shadow-inner border border-hcGray-200 p-6 mb-8 relative overflow-hidden">
