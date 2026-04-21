@@ -153,17 +153,17 @@ function App() {
       return;
     }
 
+    const SEOUL_BASE_RPI = 48.6;
+
     const baseSalaryNum = parseInt(formData.baseSalary.replace(/,/g, ''), 10) || 0;
-    const homeColNum = parseFloat(formData.homeCol) || 100;
-    const hostColNum = parseFloat(formData.hostCol) || 100;
     const exchangeRateNum = parseFloat(formData.exchangeRate) || 1;
     
     // Merge custom cities to fetch raw indices
     let mergedIndices = { ...(adminData?.colData.indices || {}) };
     customCities.forEach(c => { mergedIndices[c.city] = c.rpi; });
 
-    const rawHomeCol = mergedIndices[formData.homeCity] || 100;
     const rawHostCol = mergedIndices[formData.hostCity] || 100;
+    const normalizedColMultiplier = rawHostCol / SEOUL_BASE_RPI; // 예: 82.61 / 48.6 = 1.69979...
     
     const siPercentage = calculateSIPercentage(baseSalaryNum);
     const baseSIAmount = baseSalaryNum * (siPercentage / 100);
@@ -171,9 +171,10 @@ function App() {
     const familyMultiplier = formData.familyType === 'family' ? 1.15 : 1.0;
     const finalSIAmount = calculateFamilySIAmount(baseSIAmount, formData.familyType);
 
-    const relativeColPercentage = (hostColNum / homeColNum) * 100;
-    const overseasLivingCostKRW = finalSIAmount * (relativeColPercentage / 100);
+    // 해외 생계비 = 국내 생계비 * 1.70
+    const overseasLivingCostKRW = finalSIAmount * normalizedColMultiplier;
 
+    // 최종 현지 통화액 = (해외 생계비 / 환율)
     const finalLocalCurrencyAmount = overseasLivingCostKRW / exchangeRateNum;
 
     setResult({
@@ -182,11 +183,7 @@ function App() {
       baseSIAmount: baseSIAmount,
       familyMultiplier: familyMultiplier,
       finalSIAmount: finalSIAmount,
-      homeCol: homeColNum.toFixed(2),
-      hostCol: hostColNum.toFixed(2),
-      rawHomeCol: rawHomeCol,
-      rawHostCol: rawHostCol,
-      relativeColPercentage: relativeColPercentage,
+      normalizedColMultiplier: normalizedColMultiplier, // 1.70
       overseasLivingCostKRW: overseasLivingCostKRW,
       exchangeRate: exchangeRateNum,
       currency: formData.currency || 'KRW',

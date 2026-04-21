@@ -67,12 +67,12 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
           <div className="hidden md:flex items-center gap-4 bg-white/10 p-4 rounded-lg backdrop-blur-sm">
             <div className="text-center">
               <div className="text-xs opacity-80 mb-1">{formData.homeCity || 'Home'} (기준)</div>
-              <div className="font-semibold text-lg text-green-300">{isReady ? result.homeCol : formData.homeCol || '-'}</div>
+              <div className="font-semibold text-lg text-green-300">100.00</div>
             </div>
             <ArrowRight className="w-5 h-5 opacity-50" />
             <div className="text-center">
               <div className="text-xs opacity-80 mb-1">{formData.hostCity || 'Host'} (정규화 COL)</div>
-              <div className="font-semibold text-2xl text-yellow-300">{isReady ? result.hostCol : formData.hostCol || '-'}</div>
+              <div className="font-semibold text-2xl text-yellow-300">{isReady ? (result.normalizedColMultiplier * 100).toFixed(2) : formData.hostCol || '-'}</div>
             </div>
           </div>
         </div>
@@ -136,10 +136,10 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
               <tr className="hover:bg-hcGray-50/50 transition-colors bg-purple-50/10">
                 <td className="px-6 py-4 font-bold flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-purple-400 block"></span>
-                  최종 산식 (정규화 COL 및 환율)
+                  최종 산식 (정규화 배율 및 환율)
                 </td>
                 <td className="px-6 py-4 text-hcGray-800 font-mono text-base font-bold bg-purple-50/20 text-purple-900">
-                  {isReady ? `(${formatNumber(result.finalSIAmount)} × ${(result.relativeColPercentage / 100).toFixed(2)}) ÷ ${formatNumber(result.exchangeRate)}` : '-'}
+                  {isReady ? `(${formatNumber(result.finalSIAmount)} × ${result.normalizedColMultiplier.toFixed(2)}) ÷ ${formatNumber(result.exchangeRate)}` : '-'}
                 </td>
                 <td className="px-6 py-4 text-right font-black text-purple-700 text-lg">
                   {isReady ? formatCurrency(result.finalLocalCurrencyAmount, result.currency) : '-'}
