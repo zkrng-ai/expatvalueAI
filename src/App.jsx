@@ -88,7 +88,7 @@ function App() {
 
     const indices = adminData.colData.indices;
     const rates = adminData.exchangeData.rates;
-    const seoulBase = indices['서울'] || 115.0;
+    const seoulBase = indices['서울'] || 48.6;
 
     let hostColAdjusted = '';
     let exchangeRateValue = '';
@@ -124,6 +124,10 @@ function App() {
     const hostColNum = parseFloat(formData.hostCol) || 100;
     const exchangeRateNum = parseFloat(formData.exchangeRate) || 1;
     
+    // 원본 인덱스 로드 (검증 패널용)
+    const rawHomeCol = adminData?.colData.indices[formData.homeCity] || 100;
+    const rawHostCol = adminData?.colData.indices[formData.hostCity] || 100;
+    
     const siPercentage = calculateSIPercentage(baseSalaryNum);
     const baseSIAmount = baseSalaryNum * (siPercentage / 100);
 
@@ -143,6 +147,8 @@ function App() {
       finalSIAmount: finalSIAmount,
       homeCol: homeColNum.toFixed(2),
       hostCol: hostColNum.toFixed(2),
+      rawHomeCol: rawHomeCol,
+      rawHostCol: rawHostCol,
       relativeColPercentage: relativeColPercentage,
       overseasLivingCostKRW: overseasLivingCostKRW,
       exchangeRate: exchangeRateNum,

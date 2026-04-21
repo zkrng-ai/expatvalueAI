@@ -66,13 +66,13 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
           </div>
           <div className="hidden md:flex items-center gap-4 bg-white/10 p-4 rounded-lg backdrop-blur-sm">
             <div className="text-center">
-              <div className="text-xs opacity-80 mb-1">{formData.homeCity || 'Home'} (Index)</div>
-              <div className="font-semibold text-lg">{isReady ? result.homeCol : formData.homeCol || '-'}</div>
+              <div className="text-xs opacity-80 mb-1">{formData.homeCity || 'Home'} (기준)</div>
+              <div className="font-semibold text-lg text-green-300">{isReady ? result.homeCol : formData.homeCol || '-'}</div>
             </div>
             <ArrowRight className="w-5 h-5 opacity-50" />
             <div className="text-center">
-              <div className="text-xs opacity-80 mb-1">{formData.hostCity || 'Host'} (Index)</div>
-              <div className="font-semibold text-lg">{isReady ? result.hostCol : formData.hostCol || '-'}</div>
+              <div className="text-xs opacity-80 mb-1">{formData.hostCity || 'Host'} (COL 지수)</div>
+              <div className="font-semibold text-2xl text-yellow-300">{isReady ? result.hostCol : formData.hostCol || '-'}</div>
             </div>
           </div>
         </div>
@@ -96,7 +96,7 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
       <div className="bg-white rounded-xl shadow-sm border border-hcGray-100 flex-1 overflow-hidden flex flex-col mb-8">
         <div className="p-5 border-b border-hcGray-100 flex items-center gap-2 bg-hcGray-50/50">
           <FileText className="w-5 h-5 text-hcNavy" />
-          <h3 className="text-lg font-bold text-hcNavy">산출 근거 (수학적 공식 투명 공개)</h3>
+          <h3 className="text-lg font-bold text-hcNavy">산출 근거 및 검증 패널 (투명 공개)</h3>
         </div>
         
         <div className="overflow-x-auto">
@@ -136,13 +136,21 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
               <tr className="hover:bg-hcGray-50/50 transition-colors">
                 <td className="px-6 py-4 font-bold flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 block"></span>
-                  서울 대비 상대 물가비율
+                  서울 대비 상대 물가지수 (COL)
                 </td>
-                <td className="px-6 py-4 text-hcGray-800 font-mono text-xs bg-hcGray-50/30">
-                  {isReady ? `(Host COL(${result.hostCol}) ÷ Seoul COL(${result.homeCol})) × 100` : '-'}
+                <td className="px-6 py-4 text-hcGray-800 font-mono text-xs bg-indigo-50/30">
+                  {isReady ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-col items-center">
+                        <span className="border-b border-hcGray-800 px-1 pb-0.5">Host 원본 RPI ({result.rawHostCol})</span>
+                        <span className="pt-0.5">Home 원본 RPI ({result.rawHomeCol})</span>
+                      </div>
+                      <span className="text-lg">× 100</span>
+                    </div>
+                  ) : '-'}
                 </td>
-                <td className="px-6 py-4 text-right font-bold text-indigo-600">
-                  {isReady ? `${formatNumber(result.relativeColPercentage)} %` : '-'}
+                <td className="px-6 py-4 text-right font-bold text-indigo-600 text-lg">
+                  {isReady ? `${formatNumber(result.hostCol)}` : '-'}
                 </td>
               </tr>
               <tr className="hover:bg-hcGray-50/50 transition-colors bg-purple-50/10">
@@ -151,7 +159,7 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
                   최종 환율 및 환산
                 </td>
                 <td className="px-6 py-4 text-hcGray-800 font-mono text-xs bg-purple-50/20">
-                  {isReady ? `(가족 가산 내역 × 상대 물가비율) ÷ 환율(${formatNumber(result.exchangeRate)})` : '-'}
+                  {isReady ? `(가족 가산 내역 × (상대 물가지수 / 100)) ÷ 환율(${formatNumber(result.exchangeRate)})` : '-'}
                 </td>
                 <td className="px-6 py-4 text-right font-black text-purple-700 text-base">
                   {isReady ? formatCurrency(result.finalLocalCurrencyAmount, result.currency) : '-'}
@@ -165,7 +173,10 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-hcGray-800">
             <DollarSign className="w-12 h-12 text-hcGray-200 mb-3" />
             <p className="font-medium">모든 정보를 입력한 후 '생계비 산정 실행' 버튼을 클릭해주세요.</p>
-            <p className="text-sm mt-1 text-hcGray-800">본 지수는 서울(Seoul)을 기준(100)으로 자동 재가공됩니다.</p>
+            <p className="text-sm mt-1 text-hcGray-800 bg-yellow-50 p-2 rounded text-yellow-800 border border-yellow-200 mt-4 text-center">
+              💡 본 지수는 미 국무부 데이터를 바탕으로 <strong>서울(100) 대비 상대 물가를 산출한 결과</strong>입니다.<br/>
+              (예: 도쿄 82.61 / 서울 48.6 = 최종 COL 170.0)
+            </p>
           </div>
         )}
       </div>
@@ -176,7 +187,7 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
           <div>
             <strong>데이터 업데이트 정보</strong>
             <span className="mx-2">|</span>
-            <span className="text-hcBlue font-medium">본 지수는 미 국무부(U.S. State Dept.)의 Retail Price Index를 서울 기준으로 재가공하여 산출되었습니다.</span>
+            <span className="text-hcBlue font-medium">본 지수는 미 국무부 데이터를 바탕으로 서울(100) 대비 상대 물가를 산출한 결과입니다.</span>
           </div>
           <div className="flex gap-4 text-right">
             <div>
