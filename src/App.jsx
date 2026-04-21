@@ -42,17 +42,22 @@ function App() {
       }
 
       let bokData;
-      try {
-        // 실제 운영 환경에서는 VITE_API_KEY_ENARA 등을 사용해 API URL 구성
-        const apiUrl = import.meta.env.VITE_API_KEY_ENARA 
-          ? `https://api.bok.or.kr/ecos/${import.meta.env.VITE_API_KEY_ENARA}/json`
-          : 'https://api.bok.or.kr/fake-ecos-endpoint'; // Fallback for demo
-          
-        const res = await axios.get(apiUrl, { timeout: 3000 });
-        bokData = res.data;
-      } catch (e) {
-        console.warn("BOK ECOS API 호출 실패. 로컬 Fallback 데이터를 사용합니다.", e);
+      
+      // VITE_API_KEY_ENARA 키 유무를 먼저 검사하여 불필요한 빨간색 Network Error(콘솔 에러) 방지
+      const apiKey = import.meta.env.VITE_API_KEY_ENARA;
+      
+      if (!apiKey || apiKey === 'your_enara_or_bok_api_key_here') {
+        console.log("✅ [System] API Key 미설정: Vercel 환경 변수가 없어 내장된 안전한 Fallback(기준) 데이터를 로드합니다.");
         bokData = FALLBACK_EXCHANGE_RATES;
+      } else {
+        try {
+          const apiUrl = `https://api.bok.or.kr/ecos/${apiKey}/json`;
+          const res = await axios.get(apiUrl, { timeout: 3000 });
+          bokData = res.data;
+        } catch (e) {
+          console.warn("⚠️ [System] BOK ECOS API 호출 실패. 안전한 Fallback 데이터를 사용합니다.", e);
+          bokData = FALLBACK_EXCHANGE_RATES;
+        }
       }
 
       const newData = {
