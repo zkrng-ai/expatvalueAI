@@ -4,7 +4,6 @@ import { Calculator, MapPin, Users, Coins, Globe, Settings } from 'lucide-react'
 function Sidebar({ formData, onChange, onSalaryChange, onCalculate, onReset, onOpenAdmin, isDataLoading, customCities }) {
   
   const presets = {
-    '대한민국': ['서울', '부산'],
     '미국': ['뉴욕', '로스앤젤레스', '샌프란시스코', '워싱턴 D.C.'],
     '독일': ['프랑크푸르트'],
     '일본': ['도쿄'],
@@ -58,9 +57,7 @@ function Sidebar({ formData, onChange, onSalaryChange, onCalculate, onReset, onO
             <div>
               <label className="block text-xs font-semibold text-hcGray-800 mb-1">Home (파견국)</label>
               <select name="homeCity" value={formData.homeCity} onChange={onChange} className="w-full p-2.5 bg-hcGray-50 border border-hcGray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-hcBlue">
-                {displayGroups['대한민국']?.map(city => (
-                  <option key={`home-${city}`} value={city}>{city}</option>
-                ))}
+                <option value="서울">서울</option>
               </select>
             </div>
             <div>

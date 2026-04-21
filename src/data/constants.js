@@ -9,8 +9,7 @@ export const CITY_CURRENCY_MAP = {
   '하노이': 'VND',
   '싱가포르': 'SGD',
   '리야드': 'SAR',
-  '서울': 'KRW', 
-  '부산': 'KRW'
+  '서울': 'KRW'
 };
 
 export const FALLBACK_EXCHANGE_RATES = {
