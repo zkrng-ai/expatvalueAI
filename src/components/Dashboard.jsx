@@ -83,7 +83,7 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
   };
 
   return (
-    <div className="p-8 h-full bg-hcGray-50 flex flex-col overflow-y-auto relative pb-24">
+    <div className="p-8 h-full bg-hcGray-50 flex flex-col overflow-y-auto">
       <header className="mb-8 flex justify-between items-end">
         <div>
           <h2 className="text-3xl font-bold text-hcNavy tracking-tight">해외 생계비 산정 결과</h2>
@@ -276,12 +276,13 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
 
       {/* 데이터 거버넌스 정보 영역 */}
       {adminData && (
-        <div className="absolute bottom-0 left-0 w-full p-4 bg-hcGray-100 border-t border-hcGray-200 flex justify-between items-center text-xs text-hcGray-800">
-          <div>
-            <strong>데이터 업데이트 정보</strong>
-            <span className="mx-2">|</span>
-            <span className="text-hcBlue font-medium">본 지수는 미 국무부 데이터를 바탕으로 서울(100) 대비 상대 물가를 산출한 결과입니다.</span>
-          </div>
+        <div className="mt-auto pt-8 -mx-8 -mb-8">
+          <div className="p-4 bg-hcGray-100 border-t border-hcGray-200 flex flex-wrap gap-4 justify-between items-center text-xs text-hcGray-800">
+            <div>
+              <strong>데이터 업데이트 정보</strong>
+              <span className="mx-2">|</span>
+              <span className="text-hcBlue font-medium">본 지수는 미 국무부 데이터를 바탕으로 서울(100) 대비 상대 물가를 산출한 결과입니다.</span>
+            </div>
           <div className="flex gap-4 text-right">
             <div>
               <span className="opacity-70">U.S. DOS Index:</span> <strong className="ml-1">{adminData.colData.version}</strong>
@@ -291,6 +292,7 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
               <span className="opacity-70">Exchange Rates:</span> <strong className="ml-1">{adminData.exchangeData.meta.lastUpdated} ({adminData.exchangeData.meta.source})</strong>
             </div>
           </div>
+        </div>
         </div>
       )}
     </div>
