@@ -1,10 +1,33 @@
 import React, { useState } from 'react';
 import { FileText, ArrowRight, Info, DollarSign, CheckCircle, ShieldCheck, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import { getActiveCurve } from '../utils/calculator';
 import * as XLSX from 'xlsx';
 
-function Dashboard({ formData, result, adminData, isDataLoading }) {
+function Dashboard({ formData, result, adminData, isDataLoading, customSiMap }) {
   const isReady = result !== null;
   const [isAccordionOpen, setIsAccordionOpen] = useState(false);
+  const activeCurve = isReady ? getActiveCurve('single', result.targetYear, customSiMap) : null;
+
+  let interpolationText = '';
+  if (isReady && activeCurve) {
+    if (result.baseSalary <= activeCurve[0].bound) {
+      interpolationText = `입력하신 연봉은 최저 구간(${formatNumber(activeCurve[0].bound/10000)}만 원) 이하에 해당하여, 최저 구간 고정 비율인 **${activeCurve[0].pct}%**가 적용되었습니다.`;
+    } else if (result.baseSalary >= activeCurve[activeCurve.length - 1].bound) {
+      interpolationText = `입력하신 연봉은 최고 구간(${formatNumber(activeCurve[activeCurve.length - 1].bound/10000)}만 원) 이상에 해당하여, 최고 구간 고정 비율인 **${activeCurve[activeCurve.length - 1].pct}%**가 적용되었습니다.`;
+    } else {
+      let lower, upper;
+      for (let i = 0; i < activeCurve.length - 1; i++) {
+        if (result.baseSalary >= activeCurve[i].bound && result.baseSalary < activeCurve[i + 1].bound) {
+          lower = activeCurve[i];
+          upper = activeCurve[i + 1];
+          break;
+        }
+      }
+      if (lower && upper) {
+        interpolationText = `입력하신 연봉 ${formatNumber(result.baseSalary/10000)}만 원은 **[${formatNumber(lower.bound/10000)}만(${lower.pct}%)]**과 **[${formatNumber(upper.bound/10000)}만(${upper.pct}%)]** 사이의 구간에 해당하여, **선형 보간법(Linear Interpolation)**에 의해 구간별 가중치가 적용되어 최종 **${result.singleSiPercentage.toFixed(2)}%**로 산출되었습니다.`;
+      }
+    }
+  }
 
   const formatCurrency = (val, currency) => {
     if (val === undefined || val === null) return '0';
@@ -170,9 +193,33 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
                 <p className="text-sm text-hcGray-800">
                   입력 연봉 <strong>{formatCurrency(result?.baseSalary, 'KRW')}</strong> 기준, 소득 구간별 기본(단신) SI 비중 <strong>{result?.singleSiPercentage?.toFixed(2)}%</strong>를 적용하여 <strong>{formatCurrency(result?.baseSIAmount, 'KRW')}</strong>이 산출되었습니다.
                 </p>
-                <div className="mt-2 text-[11px] text-hcGray-500 bg-white p-2 rounded border border-hcGray-100 flex items-start gap-1.5">
-                  <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                  <span>본 비율은 MERCER의 Spendable Income Curve 모델에 따라 <strong>{result?.targetYear || new Date().getFullYear()}년</strong> 한국 가계 소비 지출 통계를 반영하여 산출되었습니다.</span>
+                <div className="mt-3 text-[11px] text-hcGray-600 bg-white p-3 rounded-md border border-hcGray-200 shadow-sm">
+                  <h5 className="font-bold text-hcNavy mb-2 flex items-center gap-1.5 border-b border-hcGray-100 pb-1.5">
+                    <Info className="w-3.5 h-3.5 text-hcBlue" /> SI 산출 방법론 (Methodology Insight)
+                  </h5>
+                  <p className="mb-3 leading-relaxed">
+                    <strong className="text-hcGray-800">MERCER 역진적 비율 적용 원리:</strong> 소득이 높아질수록 가처분 소득 중 필수 생계비(Spendable Income)가 차지하는 비중은 점진적으로 감소한다는 표준 역진 모델을 따릅니다.
+                  </p>
+                  
+                  <div className="mb-3">
+                    <div className="text-[10px] font-bold text-hcGray-500 mb-1">■ {result?.targetYear || new Date().getFullYear()}년도 기준 (단신 앵커포인트 표)</div>
+                    <div className="overflow-x-auto border border-hcGray-200 rounded">
+                      <table className="w-full text-center">
+                        <thead className="bg-hcGray-50">
+                          <tr>
+                            {activeCurve?.map((c, i) => <th key={i} className="py-1.5 px-2 border-r last:border-0 border-hcGray-200 font-semibold">{c.bound/10000}만</th>)}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            {activeCurve?.map((c, i) => <td key={i} className="py-1.5 px-2 border-r last:border-0 border-hcGray-200 font-mono text-hcBlue font-medium">{c.pct}%</td>)}
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-blue-50/50 border border-blue-100 p-2 rounded text-blue-900 leading-relaxed" dangerouslySetInnerHTML={{ __html: interpolationText.replace(/\*\*(.*?)\*\*/g, '<strong class="text-hcBlue bg-white px-1 py-0.5 rounded border border-blue-100 shadow-sm mx-0.5">$1</strong>') }}></div>
                 </div>
               </div>
             </div>

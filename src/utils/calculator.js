@@ -16,6 +16,14 @@ export const ANNUAL_SI_MAP = {
 };
 
 /**
+ * 현재 활성화된 연도의 특정 가족 타입에 대한 SI 곡선을 반환
+ */
+export const getActiveCurve = (familyType = 'single', year = new Date().getFullYear(), customSiMap = {}) => {
+  const activeYearMap = customSiMap[year] || ANNUAL_SI_MAP[year] || ANNUAL_SI_MAP[2026];
+  return activeYearMap[familyType] || activeYearMap['single'];
+};
+
+/**
  * Spendable Income (SI) 보간법 계산 (MERCER 모델 기반 선형 보간, Pure Function)
  * @param {number} baseSalary 기본연봉
  * @param {string} familyType 가족 구성 타입 ('single' | 'family')
@@ -24,9 +32,7 @@ export const ANNUAL_SI_MAP = {
  * @returns {number} 적용된 SI 퍼센티지 (%)
  */
 export const calculateSIPercentage = (baseSalary, familyType = 'single', year = new Date().getFullYear(), customSiMap = {}) => {
-  // Use custom SI map if provided for the year, otherwise fallback to ANNUAL_SI_MAP, then fallback to 2026.
-  const activeYearMap = customSiMap[year] || ANNUAL_SI_MAP[year] || ANNUAL_SI_MAP[2026];
-  const curve = activeYearMap[familyType] || activeYearMap['single'];
+  const curve = getActiveCurve(familyType, year, customSiMap);
 
   if (!baseSalary || baseSalary <= curve[0].bound) return curve[0].pct;
   if (baseSalary >= curve[curve.length - 1].bound) return curve[curve.length - 1].pct;
