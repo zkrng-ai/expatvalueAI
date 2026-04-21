@@ -14,6 +14,7 @@ function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isCustomCityOpen, setIsCustomCityOpen] = useState(false);
   const [customCities, setCustomCities] = useState([]);
+  const [customSiMap, setCustomSiMap] = useState({});
 
   const [formData, setFormData] = useState({
     homeCountry: '대한민국',
@@ -37,6 +38,15 @@ function App() {
         setCustomCities(JSON.parse(savedCustomCities));
       } catch (e) {
         console.error("Failed to parse custom cities", e);
+      }
+    }
+    
+    const savedCustomSiMap = localStorage.getItem('expatValueCustomSiTables');
+    if (savedCustomSiMap) {
+      try {
+        setCustomSiMap(JSON.parse(savedCustomSiMap));
+      } catch (e) {
+        console.error("Failed to parse custom SI map", e);
       }
     }
   }, []);
@@ -175,11 +185,14 @@ function App() {
     const rawHostCol = mergedIndices[formData.hostCity] || 100;
     const normalizedColMultiplier = rawHostCol / SEOUL_BASE_RPI; // 예: 82.61 / 48.6 = 1.69979...
     
-    const siPercentage = calculateSIPercentage(baseSalaryNum);
-    const baseSIAmount = baseSalaryNum * (siPercentage / 100);
+    const targetYear = new Date().getFullYear();
+    const singleSiPercentage = calculateSIPercentage(baseSalaryNum, 'single', targetYear, customSiMap);
+    const finalSiPercentage = calculateSIPercentage(baseSalaryNum, formData.familyType, targetYear, customSiMap);
+    
+    const baseSIAmount = baseSalaryNum * (singleSiPercentage / 100);
+    const finalSIAmount = baseSalaryNum * (finalSiPercentage / 100);
 
-    const familyMultiplier = formData.familyType === 'family' ? 1.15 : 1.0;
-    const finalSIAmount = calculateFamilySIAmount(baseSIAmount, formData.familyType);
+    const familyMultiplier = (finalSiPercentage / singleSiPercentage).toFixed(4);
 
     // 해외 생계비 = 국내 생계비 * 1.70
     const overseasLivingCostKRW = finalSIAmount * normalizedColMultiplier;
@@ -189,7 +202,8 @@ function App() {
 
     setResult({
       baseSalary: baseSalaryNum,
-      siPercentage: siPercentage,
+      singleSiPercentage: singleSiPercentage,
+      finalSiPercentage: finalSiPercentage,
       baseSIAmount: baseSIAmount,
       familyMultiplier: familyMultiplier,
       finalSIAmount: finalSIAmount,
@@ -199,7 +213,8 @@ function App() {
       overseasLivingCostKRW: overseasLivingCostKRW,
       exchangeRate: exchangeRateNum,
       currency: formData.currency || 'KRW',
-      finalLocalCurrencyAmount: finalLocalCurrencyAmount
+      finalLocalCurrencyAmount: finalLocalCurrencyAmount,
+      targetYear: targetYear
     });
   };
 
@@ -268,6 +283,11 @@ function App() {
         <AdminModal 
           adminData={adminData} 
           setAdminData={setAdminData} 
+          customSiMap={customSiMap}
+          setCustomSiMap={(newMap) => {
+            setCustomSiMap(newMap);
+            localStorage.setItem('expatValueCustomSiTables', JSON.stringify(newMap));
+          }}
           onClose={() => setIsAdminOpen(false)} 
           onForceUpdate={() => {
             setIsAdminOpen(false);

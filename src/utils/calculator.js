@@ -1,38 +1,50 @@
+export const ANNUAL_SI_MAP = {
+  2026: {
+    single: [
+      { bound: 50000000, pct: 50.0 },
+      { bound: 100000000, pct: 44.56 },
+      { bound: 150000000, pct: 40.0 },
+      { bound: 200000000, pct: 35.0 }
+    ],
+    family: [
+      { bound: 50000000, pct: 57.5 },
+      { bound: 100000000, pct: 51.15 },
+      { bound: 150000000, pct: 46.0 },
+      { bound: 200000000, pct: 40.25 }
+    ]
+  }
+};
+
 /**
  * Spendable Income (SI) 보간법 계산 (MERCER 모델 기반 선형 보간, Pure Function)
  * @param {number} baseSalary 기본연봉
+ * @param {string} familyType 가족 구성 타입 ('single' | 'family')
+ * @param {number} year 연도 (기본값: 현재 연도)
+ * @param {object} customSiMap 관리자 커스텀 SI 데이터
  * @returns {number} 적용된 SI 퍼센티지 (%)
  */
-export const calculateSIPercentage = (baseSalary) => {
-  if (!baseSalary || baseSalary <= 50000000) return 50.0;
-  if (baseSalary >= 200000000) return 35.0;
+export const calculateSIPercentage = (baseSalary, familyType = 'single', year = new Date().getFullYear(), customSiMap = {}) => {
+  // Use custom SI map if provided for the year, otherwise fallback to ANNUAL_SI_MAP, then fallback to 2026.
+  const activeYearMap = customSiMap[year] || ANNUAL_SI_MAP[year] || ANNUAL_SI_MAP[2026];
+  const curve = activeYearMap[familyType] || activeYearMap['single'];
+
+  if (!baseSalary || baseSalary <= curve[0].bound) return curve[0].pct;
+  if (baseSalary >= curve[curve.length - 1].bound) return curve[curve.length - 1].pct;
 
   let lowerBound, upperBound, lowerPct, upperPct;
 
-  if (baseSalary < 100000000) {
-    lowerBound = 50000000; upperBound = 100000000;
-    lowerPct = 50.0; upperPct = 44.56;
-  } else if (baseSalary < 150000000) {
-    lowerBound = 100000000; upperBound = 150000000;
-    lowerPct = 44.56; upperPct = 40.0;
-  } else {
-    lowerBound = 150000000; upperBound = 200000000;
-    lowerPct = 40.0; upperPct = 35.0;
+  for (let i = 0; i < curve.length - 1; i++) {
+    if (baseSalary >= curve[i].bound && baseSalary < curve[i + 1].bound) {
+      lowerBound = curve[i].bound;
+      upperBound = curve[i + 1].bound;
+      lowerPct = curve[i].pct;
+      upperPct = curve[i + 1].pct;
+      break;
+    }
   }
 
   const ratio = (baseSalary - lowerBound) / (upperBound - lowerBound);
   return lowerPct - (ratio * (lowerPct - upperPct));
-};
-
-/**
- * 가족 구성에 따른 SI 가산액 계산 (Pure Function)
- * @param {number} baseSIAmount 단신 SI 금액
- * @param {string} familyType 가족 구성 타입 ('single' | 'family')
- * @returns {number} 최종 가산된 SI 금액
- */
-export const calculateFamilySIAmount = (baseSIAmount, familyType) => {
-  const familyMultiplier = familyType === 'family' ? 1.15 : 1.0;
-  return baseSIAmount * familyMultiplier;
 };
 
 /**

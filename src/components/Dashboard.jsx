@@ -63,10 +63,10 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
     // 3. 상세 산출 과정 (아코디언 열려있을 때만)
     if (isAccordionOpen) {
       wsData.push(['[상세 산출 과정 (Step-by-Step)]']);
-      wsData.push(['Step 1. 국내 생계비(SI) 도출', `입력 연봉 ${formatNumber(result.baseSalary)}원 기준, 소득 구간별 SI 비중 ${result.siPercentage.toFixed(2)}%를 적용하여 ${formatNumber(result.baseSIAmount)}원이 산출되었습니다.`]);
+      wsData.push(['Step 1. 국내 생계비(SI) 도출', `입력 연봉 ${formatNumber(result.baseSalary)}원 기준, 소득 구간별 기본(단신) SI 비중 ${result.singleSiPercentage.toFixed(2)}%를 적용하여 ${formatNumber(result.baseSIAmount)}원이 산출되었습니다. (본 비율은 MERCER의 Spendable Income Curve 모델에 따라 ${result.targetYear || 2026}년 한국 가계 소비 지출 통계를 반영하여 산출되었습니다)`]);
       
       const familyText = formData?.familyType === 'family' 
-        ? `가족 동반에 따른 가산율(${result.familyMultiplier}배)을 적용하여 최종 국내 기준액은 ${formatNumber(result.finalSIAmount)}원입니다.`
+        ? `가족 동반에 따른 가산율 적용 (현재 적용된 독립 비율 ${result.finalSiPercentage.toFixed(2)}%, 단신 대비 약 ${result.familyMultiplier}배)에 따라 최종 국내 기준액은 ${formatNumber(result.finalSIAmount)}원입니다.`
         : `단신 부임으로 별도의 가산율 적용 없이 최종 국내 기준액은 ${formatNumber(result.finalSIAmount)}원입니다.`;
       wsData.push(['Step 2. 가족 가산 적용', familyText]);
       
@@ -168,8 +168,12 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
               <div className="bg-hcGray-50/50 p-4 rounded-lg border border-hcGray-100 flex-1">
                 <h4 className="font-bold text-hcNavy mb-1">국내 생계비(SI) 도출</h4>
                 <p className="text-sm text-hcGray-800">
-                  입력 연봉 <strong>{formatCurrency(result?.baseSalary, 'KRW')}</strong> 기준, 소득 구간별 SI 비중 <strong>{result?.siPercentage.toFixed(2)}%</strong>를 적용하여 <strong>{formatCurrency(result?.baseSIAmount, 'KRW')}</strong>이 산출되었습니다.
+                  입력 연봉 <strong>{formatCurrency(result?.baseSalary, 'KRW')}</strong> 기준, 소득 구간별 기본(단신) SI 비중 <strong>{result?.singleSiPercentage?.toFixed(2)}%</strong>를 적용하여 <strong>{formatCurrency(result?.baseSIAmount, 'KRW')}</strong>이 산출되었습니다.
                 </p>
+                <div className="mt-2 text-[11px] text-hcGray-500 bg-white p-2 rounded border border-hcGray-100 flex items-start gap-1.5">
+                  <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                  <span>본 비율은 MERCER의 Spendable Income Curve 모델에 따라 <strong>{result?.targetYear || new Date().getFullYear()}년</strong> 한국 가계 소비 지출 통계를 반영하여 산출되었습니다.</span>
+                </div>
               </div>
             </div>
 
@@ -179,7 +183,7 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
                 <h4 className="font-bold text-hcNavy mb-1">가족 가산 적용</h4>
                 <p className="text-sm text-hcGray-800">
                   {formData?.familyType === 'family' 
-                    ? <>가족 동반에 따른 가산율(<strong>{result?.familyMultiplier}배</strong>)을 적용하여 최종 국내 기준액은 <strong>{formatCurrency(result?.finalSIAmount, 'KRW')}</strong>입니다.</>
+                    ? <>가족 동반에 따른 가산율 적용(독립 비율 <strong>{result?.finalSiPercentage?.toFixed(2)}%</strong>, 단신 대비 역산 <strong>{result?.familyMultiplier}배</strong>)에 따라 최종 국내 기준액은 <strong>{formatCurrency(result?.finalSIAmount, 'KRW')}</strong>입니다.</>
                     : <>단신 부임으로 별도의 가산율 적용 없이 최종 국내 기준액은 <strong>{formatCurrency(result?.finalSIAmount, 'KRW')}</strong>입니다.</>
                   }
                 </p>
@@ -273,6 +277,40 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
           </div>
         </div>
       )}
+
+      {/* References & Methodology Section */}
+      <div className="mt-8 mb-4">
+        <h3 className="text-sm font-bold text-hcNavy mb-3 border-b border-hcGray-200 pb-2">참조 및 산출 근거 (References & Methodology)</h3>
+        <div className="grid md:grid-cols-3 gap-4">
+          <a href="https://www.mercer.com/insights/total-rewards/talent-mobility/cost-of-living.html" target="_blank" rel="noreferrer" className="flex items-start gap-3 p-3 bg-white rounded-lg border border-hcGray-200 hover:border-hcBlue hover:shadow-sm transition-all group">
+            <div className="w-8 h-8 rounded bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <FileText className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-hcGray-800 group-hover:text-hcBlue">MERCER Cost of Living</h4>
+              <p className="text-[10px] text-hcGray-500 mt-0.5 line-clamp-2">생계비 산정 표준 방법론 참조 (SI Curve 모델링)</p>
+            </div>
+          </a>
+          <a href="https://aoprals.state.gov/" target="_blank" rel="noreferrer" className="flex items-start gap-3 p-3 bg-white rounded-lg border border-hcGray-200 hover:border-hcBlue hover:shadow-sm transition-all group">
+            <div className="w-8 h-8 rounded bg-red-50 text-red-600 flex items-center justify-center shrink-0 group-hover:bg-red-600 group-hover:text-white transition-colors">
+              <CheckCircle className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-hcGray-800 group-hover:text-hcBlue">U.S. State Dept.</h4>
+              <p className="text-[10px] text-hcGray-500 mt-0.5 line-clamp-2">미 국무부 Office of Allowances 물가지수(COL) 원천 데이터</p>
+            </div>
+          </a>
+          <a href="https://www.oecdbetterlifeindex.org/" target="_blank" rel="noreferrer" className="flex items-start gap-3 p-3 bg-white rounded-lg border border-hcGray-200 hover:border-hcBlue hover:shadow-sm transition-all group">
+            <div className="w-8 h-8 rounded bg-green-50 text-green-600 flex items-center justify-center shrink-0 group-hover:bg-green-600 group-hover:text-white transition-colors">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-hcGray-800 group-hover:text-hcBlue">OECD Better Life Index</h4>
+              <p className="text-[10px] text-hcGray-500 mt-0.5 line-clamp-2">국가별 삶의 비용 및 가계 소비 트렌드 객관적 지표 참조</p>
+            </div>
+          </a>
+        </div>
+      </div>
 
       {/* 데이터 거버넌스 정보 영역 */}
       {adminData && (
