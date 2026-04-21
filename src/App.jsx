@@ -160,62 +160,77 @@ function App() {
   }, [formData.hostCity, adminData, customCities]);
 
   const handleCalculate = () => {
-    if (!formData.baseSalary) {
-      alert('국내 기본연봉을 입력해주세요.');
-      return;
+    try {
+      console.log('--- 계산 로직 실행 시작 ---');
+      console.log('1. 입력 연봉:', formData.baseSalary);
+      console.log('2. 가족 형태:', formData.familyType);
+      console.log('3. 부임 도시:', formData.hostCity, '(COL:', formData.hostCol, ')');
+      console.log('4. 적용 환율:', formData.exchangeRate, formData.currency);
+
+      if (!formData.baseSalary) {
+        alert('국내 기본연봉을 입력해주세요.');
+        return;
+      }
+      if (!formData.hostCity) {
+        alert('부임도시를 선택해주세요.');
+        return;
+      }
+      if (!formData.exchangeRate) {
+        alert('환율 데이터가 로드되지 않았습니다. 잠시 후 다시 시도하거나 데이터를 확인해주세요.');
+        return;
+      }
+
+      // Defensive null checks
+      const SEOUL_BASE_RPI = 48.6;
+      const baseSalaryNum = parseInt(formData.baseSalary.replace(/,/g, ''), 10) || 0;
+      const exchangeRateNum = parseFloat(formData.exchangeRate) || 1;
+      
+      // Merge custom cities to fetch raw indices safely
+      let mergedIndices = { ...(adminData?.colData?.indices || {}) };
+      if (customCities && customCities.length > 0) {
+        customCities.forEach(c => { mergedIndices[c.city] = c.rpi; });
+      }
+
+      const rawHostCol = mergedIndices[formData.hostCity] || 100;
+      const normalizedColMultiplier = rawHostCol / SEOUL_BASE_RPI; 
+      
+      const targetYear = new Date().getFullYear();
+      const singleSiPercentage = calculateSIPercentage(baseSalaryNum, 'single', targetYear, customSiMap) || 0;
+      const finalSiPercentage = calculateSIPercentage(baseSalaryNum, formData.familyType || 'single', targetYear, customSiMap) || 0;
+      
+      const baseSIAmount = baseSalaryNum * (singleSiPercentage / 100);
+      const finalSIAmount = baseSalaryNum * (finalSiPercentage / 100);
+
+      const familyMultiplier = singleSiPercentage > 0 ? (finalSiPercentage / singleSiPercentage).toFixed(4) : "1.0000";
+
+      // 해외 생계비 = 국내 생계비 * COL 배수
+      const overseasLivingCostKRW = finalSIAmount * normalizedColMultiplier;
+
+      // 최종 현지 통화액 = (해외 생계비 / 환율)
+      const finalLocalCurrencyAmount = overseasLivingCostKRW / exchangeRateNum;
+
+      console.log('--- 계산 정상 완료 ---');
+
+      setResult({
+        baseSalary: baseSalaryNum,
+        singleSiPercentage: singleSiPercentage,
+        finalSiPercentage: finalSiPercentage,
+        baseSIAmount: baseSIAmount,
+        familyMultiplier: familyMultiplier,
+        finalSIAmount: finalSIAmount,
+        normalizedColMultiplier: normalizedColMultiplier,
+        rawHostCol: rawHostCol,
+        seoulBaseRpi: SEOUL_BASE_RPI,
+        overseasLivingCostKRW: overseasLivingCostKRW,
+        exchangeRate: exchangeRateNum,
+        currency: formData.currency || 'KRW',
+        finalLocalCurrencyAmount: finalLocalCurrencyAmount,
+        targetYear: targetYear
+      });
+    } catch (error) {
+      console.error('계산 중 치명적 오류 발생:', error);
+      alert('계산 중 오류가 발생했습니다. 입력값을 확인해주세요.\n(에러 상세: ' + error.message + ')');
     }
-    if (!formData.hostCity) {
-      alert('부임도시를 선택해주세요.');
-      return;
-    }
-    if (!formData.exchangeRate) {
-      alert('환율 데이터가 로드되지 않았습니다. 잠시 후 다시 시도하거나 데이터를 확인해주세요.');
-      return;
-    }
-
-    const SEOUL_BASE_RPI = 48.6;
-
-    const baseSalaryNum = parseInt(formData.baseSalary.replace(/,/g, ''), 10) || 0;
-    const exchangeRateNum = parseFloat(formData.exchangeRate) || 1;
-    
-    // Merge custom cities to fetch raw indices
-    let mergedIndices = { ...(adminData?.colData.indices || {}) };
-    customCities.forEach(c => { mergedIndices[c.city] = c.rpi; });
-
-    const rawHostCol = mergedIndices[formData.hostCity] || 100;
-    const normalizedColMultiplier = rawHostCol / SEOUL_BASE_RPI; // 예: 82.61 / 48.6 = 1.69979...
-    
-    const targetYear = new Date().getFullYear();
-    const singleSiPercentage = calculateSIPercentage(baseSalaryNum, 'single', targetYear, customSiMap);
-    const finalSiPercentage = calculateSIPercentage(baseSalaryNum, formData.familyType, targetYear, customSiMap);
-    
-    const baseSIAmount = baseSalaryNum * (singleSiPercentage / 100);
-    const finalSIAmount = baseSalaryNum * (finalSiPercentage / 100);
-
-    const familyMultiplier = (finalSiPercentage / singleSiPercentage).toFixed(4);
-
-    // 해외 생계비 = 국내 생계비 * 1.70
-    const overseasLivingCostKRW = finalSIAmount * normalizedColMultiplier;
-
-    // 최종 현지 통화액 = (해외 생계비 / 환율)
-    const finalLocalCurrencyAmount = overseasLivingCostKRW / exchangeRateNum;
-
-    setResult({
-      baseSalary: baseSalaryNum,
-      singleSiPercentage: singleSiPercentage,
-      finalSiPercentage: finalSiPercentage,
-      baseSIAmount: baseSIAmount,
-      familyMultiplier: familyMultiplier,
-      finalSIAmount: finalSIAmount,
-      normalizedColMultiplier: normalizedColMultiplier, // 1.70
-      rawHostCol: rawHostCol, // 82.61 - for fact check UI only
-      seoulBaseRpi: SEOUL_BASE_RPI, // 48.6 - for fact check UI only
-      overseasLivingCostKRW: overseasLivingCostKRW,
-      exchangeRate: exchangeRateNum,
-      currency: formData.currency || 'KRW',
-      finalLocalCurrencyAmount: finalLocalCurrencyAmount,
-      targetYear: targetYear
-    });
   };
 
   const handleReset = () => {
@@ -277,6 +292,7 @@ function App() {
           result={result} 
           adminData={adminData} 
           isDataLoading={isDataLoading}
+          customSiMap={customSiMap}
         />
       </div>
       {isAdminOpen && (
