@@ -21,7 +21,7 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
 
   if (isDataLoading) {
     return (
-      <div className="p-8 h-full bg-hcGray-50 flex flex-col overflow-y-auto">
+      <div className="p-8 h-full bg-hcGray-50 flex flex-col">
         <div className="h-10 bg-hcGray-200 rounded w-1/3 mb-4 animate-pulse"></div>
         <div className="h-4 bg-hcGray-200 rounded w-2/3 mb-12 animate-pulse"></div>
         
@@ -83,8 +83,8 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
   };
 
   return (
-    <div className="p-8 h-full bg-hcGray-50 flex flex-col overflow-y-auto">
-      <header className="mb-8 flex justify-between items-end">
+    <div className="p-8 min-h-full bg-hcGray-50 flex flex-col flex-1 pb-24">
+      <header className="mb-8 flex justify-between items-end shrink-0">
         <div>
           <h2 className="text-3xl font-bold text-hcNavy tracking-tight">해외 생계비 산정 결과</h2>
           <p className="text-hcGray-800 mt-2 text-sm">
@@ -158,7 +158,7 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
       )}
 
       {/* Accordion Content */}
-      <div className={`transition-all duration-500 overflow-hidden ${isAccordionOpen && isReady ? 'max-h-[1000px] mb-8 opacity-100' : 'max-h-0 mb-0 opacity-0'}`}>
+      <div className={`transition-all duration-500 overflow-hidden shrink-0 ${isAccordionOpen && isReady ? 'max-h-[1500px] mb-12 opacity-100' : 'max-h-0 mb-0 opacity-0'}`}>
         <div className="bg-white rounded-xl shadow-sm border border-hcGray-100 flex-1 flex flex-col">
           <div className="p-6 space-y-4 relative">
             <div className="absolute left-[39px] top-10 bottom-10 w-0.5 bg-hcGray-100 z-0"></div>
@@ -223,7 +223,7 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
       )}
 
       {isReady && adminData && (
-        <div className="bg-hcGray-100/50 rounded-xl shadow-inner border border-hcGray-200 p-6 mb-8 relative overflow-hidden">
+        <div className="mt-8 bg-hcGray-100/50 rounded-xl shadow-inner border border-hcGray-200 p-6 mb-8 relative overflow-hidden shrink-0">
           <div className="absolute top-0 left-0 w-1 h-full bg-hcBlue"></div>
           <div className="flex items-center gap-2 mb-5">
             <CheckCircle className="w-6 h-6 text-green-600" />
@@ -276,8 +276,8 @@ function Dashboard({ formData, result, adminData, isDataLoading }) {
 
       {/* 데이터 거버넌스 정보 영역 */}
       {adminData && (
-        <div className="mt-auto pt-8 -mx-8 -mb-8">
-          <div className="p-4 bg-hcGray-100 border-t border-hcGray-200 flex flex-wrap gap-4 justify-between items-center text-xs text-hcGray-800">
+        <div className="mt-auto pt-16 -mx-8 pb-12">
+          <div className="p-4 bg-hcGray-100 border-y border-hcGray-200 flex flex-wrap gap-4 justify-between items-center text-xs text-hcGray-800">
             <div>
               <strong>데이터 업데이트 정보</strong>
               <span className="mx-2">|</span>

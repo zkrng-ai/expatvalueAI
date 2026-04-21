@@ -243,8 +243,8 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen bg-hcGray-50">
-      <div className="w-[30%] min-w-[350px] max-w-[420px] h-full shadow-lg z-10">
+    <div className="flex min-h-screen bg-hcGray-50">
+      <div className="w-[30%] min-w-[350px] max-w-[420px] shadow-lg z-10 sticky top-0 h-screen overflow-y-auto">
         <Sidebar 
           formData={formData} 
           onChange={handleInputChange} 
@@ -256,7 +256,7 @@ function App() {
           customCities={customCities}
         />
       </div>
-      <div className="flex-1 h-full relative">
+      <div className="flex-1 min-h-screen relative flex flex-col">
         <Dashboard 
           formData={formData} 
           result={result} 
