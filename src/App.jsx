@@ -61,7 +61,8 @@ function App() {
     
     try {
       if (!force) {
-        const cached = sessionStorage.getItem('expatValueAdminData');
+        // Cache bust by using _v2 to force loading new currencies (VND, SAR, SGD)
+        const cached = sessionStorage.getItem('expatValueAdminData_v2');
         if (cached) {
           setAdminData(JSON.parse(cached));
           setIsDataLoading(false);
@@ -93,7 +94,7 @@ function App() {
         cityCurrency: CITY_CURRENCY_MAP
       };
 
-      sessionStorage.setItem('expatValueAdminData', JSON.stringify(newData));
+      sessionStorage.setItem('expatValueAdminData_v2', JSON.stringify(newData));
       setAdminData(newData);
 
     } catch (error) {
@@ -122,7 +123,8 @@ function App() {
     });
 
     const rates = adminData.exchangeData.rates;
-    const seoulBase = mergedIndices['서울'] || 48.6;
+    // Force SEOUL_BASE_RPI to 48.6 absolutely everywhere
+    const SEOUL_BASE_RPI = 48.6;
 
     let hostColAdjusted = '';
     let exchangeRateValue = '';
@@ -130,11 +132,11 @@ function App() {
 
     if (formData.hostCity && mergedIndices[formData.hostCity]) {
       const rawCol = mergedIndices[formData.hostCity];
-      const adjustedCol = calculateAdjustedCol(rawCol, seoulBase);
+      const adjustedCol = (rawCol / SEOUL_BASE_RPI) * 100;
       hostColAdjusted = adjustedCol.toFixed(2);
       
       currency = mergedCurrencies[formData.hostCity] || 'KRW';
-      exchangeRateValue = rates[currency] ? rates[currency].toString() : '1';
+      exchangeRateValue = rates[currency] ? rates[currency].toString() : ''; // if missing, let it be empty instead of 1 to fail validation gracefully or show UI
     }
 
     setFormData(prev => ({
@@ -148,8 +150,16 @@ function App() {
   }, [formData.hostCity, adminData, customCities]);
 
   const handleCalculate = () => {
-    if (!formData.baseSalary || !formData.homeCol || !formData.hostCol || !formData.exchangeRate) {
-      alert('모든 필수 입력값을 채워주세요.');
+    if (!formData.baseSalary) {
+      alert('국내 기본연봉을 입력해주세요.');
+      return;
+    }
+    if (!formData.hostCity) {
+      alert('부임도시를 선택해주세요.');
+      return;
+    }
+    if (!formData.exchangeRate) {
+      alert('환율 데이터가 로드되지 않았습니다. 잠시 후 다시 시도하거나 데이터를 확인해주세요.');
       return;
     }
 

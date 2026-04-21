@@ -120,7 +120,7 @@ function Sidebar({ formData, onChange, onSalaryChange, onCalculate, onReset, onO
             </div>
             <div className="flex items-center gap-3">
               <label className="w-24 text-xs font-semibold text-hcGray-800">연평균 환율</label>
-              <input type="text" readOnly value={formData.exchangeRate} className="flex-1 p-2 bg-hcGray-100 border border-hcGray-200 rounded-md text-sm text-right cursor-not-allowed" />
+              <input type="text" readOnly value={formData.exchangeRate || (formData.hostCity ? '데이터 준비 중' : '')} className="flex-1 p-2 bg-hcGray-100 border border-hcGray-200 rounded-md text-sm text-right cursor-not-allowed" />
             </div>
           </div>
         </div>
