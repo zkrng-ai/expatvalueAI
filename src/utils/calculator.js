@@ -18,10 +18,10 @@ export const ANNUAL_SI_MAP = {
 /**
  * 현재 활성화된 연도의 특정 가족 타입에 대한 SI 곡선을 반환
  */
-export const getActiveCurve = (familyType = 'single', year = new Date().getFullYear(), customSiMap = {}) => {
+export function getActiveCurve(familyType = 'single', year = new Date().getFullYear(), customSiMap = {}) {
   const activeYearMap = customSiMap[year] || ANNUAL_SI_MAP[year] || ANNUAL_SI_MAP[2026];
   return activeYearMap[familyType] || activeYearMap['single'];
-};
+}
 
 /**
  * Spendable Income (SI) 보간법 계산 (MERCER 모델 기반 선형 보간, Pure Function)
@@ -31,7 +31,7 @@ export const getActiveCurve = (familyType = 'single', year = new Date().getFullY
  * @param {object} customSiMap 관리자 커스텀 SI 데이터
  * @returns {number} 적용된 SI 퍼센티지 (%)
  */
-export const calculateSIPercentage = (baseSalary, familyType = 'single', year = new Date().getFullYear(), customSiMap = {}) => {
+export function calculateSIPercentage(baseSalary, familyType = 'single', year = new Date().getFullYear(), customSiMap = {}) {
   const curve = getActiveCurve(familyType, year, customSiMap);
 
   if (!baseSalary || baseSalary <= curve[0].bound) return curve[0].pct;
@@ -51,7 +51,7 @@ export const calculateSIPercentage = (baseSalary, familyType = 'single', year = 
 
   const ratio = (baseSalary - lowerBound) / (upperBound - lowerBound);
   return lowerPct - (ratio * (lowerPct - upperPct));
-};
+}
 
 /**
  * 미 국무부 원본 데이터를 바탕으로 서울을 기준점(100)으로 변환하는 순수 함수
@@ -59,7 +59,7 @@ export const calculateSIPercentage = (baseSalary, familyType = 'single', year = 
  * @param {number} seoulBase 서울의 원본 Index (워싱턴=100 기준)
  * @returns {number} 변환된 상대적 COL Index (%)
  */
-export const calculateAdjustedCol = (rawCol, seoulBase) => {
+export function calculateAdjustedCol(rawCol, seoulBase) {
   if (!rawCol || !seoulBase) return 100.00;
   return (rawCol / seoulBase) * 100;
-};
+}
