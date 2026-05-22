@@ -42,26 +42,57 @@ const ANNUAL_SI_MAP = {
     ]
   }
 };
-const STATE_DEPT_DATA = {
-  lastUpdated: '2026-04-01',
-  version: '2026 Q2',
-  sourceUrl: 'https://aoprals.state.gov/',
-  indices: {
-    '워싱턴 D.C.': 100.0,
-    '서울': 48.6,
-    '뉴욕': 130.0,
-    '로스앤젤레스': 115.0,
-    '샌프란시스코': 125.0,
-    '프랑크푸르트': 105.0,
-    '도쿄': 82.61,
-    '런던': 110.5,
-    '하노이': 40.5,
-    '싱가포르': 120.0,
-    '리야드': 90.0
+const UN_ICSC_DATA = {
+  colData: {
+    lastUpdated: "2026-05-01",
+    version: "2026 May (UN ICSC RPI)",
+    sourceUrl: "https://icsc.un.org/Home/PostAdjustment",
+    indices: {
+      "뉴욕": 100,
+      "서울": 90,
+      "도쿄": 81,
+      "로스앤젤레스": 95.0,
+      "샌프란시스코": 98.5,
+      "프랑크푸르트": 88.0,
+      "런던": 94.5,
+      "하노이": 45.0,
+      "싱가포르": 105.5,
+      "리야드": 85.0
+    }
+  },
+  exchangeData: {
+    meta: {
+      lastUpdated: "2026-01-01",
+      source: "Fallback Cache (e-나라지표)",
+      calcMethod: "직전년도 일별 환율 산술 평균 (Fallback)",
+      targetYear: 2025
+    },
+    rates: {
+      "USD": 1385.5,
+      "GBP": 1720,
+      "JPY": 9.15,
+      "EUR": 1480,
+      "VND": 0.055,
+      "SGD": 1025,
+      "SAR": 369.5,
+      "KRW": 1
+    }
+  },
+  cityCurrency: {
+    "뉴욕": "USD",
+    "서울": "KRW",
+    "도쿄": "JPY",
+    "로스앤젤레스": "USD",
+    "샌프란시스코": "USD",
+    "프랑크푸르트": "EUR",
+    "런던": "GBP",
+    "하노이": "VND",
+    "싱가포르": "SGD",
+    "리야드": "SAR"
   }
 };
 const CITY_CURRENCY_MAP = {
-  '워싱턴 D.C.': 'USD',
+  '뉴욕': 'USD',
   '뉴욕': 'USD',
   '로스앤젤레스': 'USD',
   '샌프란시스코': 'USD',
@@ -94,7 +125,7 @@ const EXTENDED_RPI_DB = [
   { country: '미국', city: '뉴욕', rpi: 110.5, currency: 'USD' },
   { country: '미국', city: '로스앤젤레스', rpi: 105.0, currency: 'USD' },
   { country: '미국', city: '샌프란시스코', rpi: 108.2, currency: 'USD' },
-  { country: '미국', city: '워싱턴 D.C.', rpi: 100.0, currency: 'USD' },
+  { country: '미국', city: '뉴욕', rpi: 100.0, currency: 'USD' },
   { country: '미국', city: '시카고', rpi: 98.5, currency: 'USD' },
   { country: '미국', city: '보스턴', rpi: 102.1, currency: 'USD' },
   { country: '독일', city: '프랑크푸르트', rpi: 105.0, currency: 'EUR' },
@@ -124,7 +155,6 @@ const EXTENDED_RPI_DB = [
   { country: '이탈리아', city: '밀라노', rpi: 98.0, currency: 'EUR' },
   { country: '네덜란드', city: '암스테르담', rpi: 102.0, currency: 'EUR' }
 ];
-const SEOUL_BASE_RPI = 48.6;
 const DEFAULT_CITY_DATA = [];
 function getActiveCurve(familyType = 'single', year = new Date().getFullYear(), customSiMap = {}) {
   const activeYearMap = customSiMap[year] || ANNUAL_SI_MAP[year] || ANNUAL_SI_MAP[2026];
@@ -154,7 +184,7 @@ function calculateAdjustedCol(rawCol, seoulBase) {
 function Sidebar({ formData, onChange, onSalaryChange, onCalculate, onReset, onOpenAdmin, isDataLoading, customCities }) {
 
   const presets = {
-    '미국': ['뉴욕', '로스앤젤레스', '샌프란시스코', '워싱턴 D.C.'],
+    '미국': ['뉴욕', '로스앤젤레스', '샌프란시스코', '뉴욕'],
     '독일': ['프랑크푸르트'],
     '일본': ['도쿄'],
     '영국': ['런던'],
@@ -294,6 +324,7 @@ function formatNumber(val) {
   return new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 2 }).format(val);
 }
 function Dashboard({ formData, result, adminData, isDataLoading, customSiMap, activeCurve }) {
+  const [isJustificationOpen, setIsJustificationOpen] = useState(false);
   const isReady = result !== null;
   const [isAccordionOpen, setIsAccordionOpen] = useState(false);
   let interpolationText = '';
@@ -358,7 +389,7 @@ function Dashboard({ formData, result, adminData, isDataLoading, customSiMap, ac
     // 3. 상세 산출 과정 (아코디언 열려있을 때만)
     if (isAccordionOpen) {
       wsData.push(['[상세 산출 과정 (Step-by-Step)]']);
-      wsData.push(['Step 1. 국내 생계비(SI) 산출', `입력 연봉 ${formatNumber(result?.baseSalary)}원 기준, 소득 구간별 기본(단신) SI 비중 ${result?.singleSiPercentage?.toFixed(2)}%를 적용하여 ${formatNumber(result?.baseSIAmount)}원이 산출되었습니다. (본 비율은 MERCER의 Spendable Income Curve 모델에 따라 ${result?.targetYear || 2026}년 한국 가구 소비 지출 통계를 반영하여 산출되었습니다.)`]);
+      wsData.push(['Step 1. 국내 생계비(SI) 산출', `입력 연봉 ${formatNumber(result?.baseSalary)}원 기준, 소득 구간별 기본(단신) SI 비중 ${result?.singleSiPercentage?.toFixed(2)}%를 적용하여 ${formatNumber(result?.baseSIAmount)}원이 산출되었습니다. (본 비율은 글로벌 표준 및 당사 자체 하이브리드 기준 산출의 Spendable Income Curve 모델에 따라 ${result?.targetYear || 2026}년 한국 가구 소비 지출 통계를 반영하여 산출되었습니다.)`]);
 
       const familyText = formData?.familyType === 'family'
         ? `가족 동반에 따른 가산율 적용 (현재 적용된 독립 비율 ${result.finalSiPercentage.toFixed(2)}%, 단신 대비 ${result.familyMultiplier}배)에 따라 최종 국내 기준액은 ${formatNumber(result.finalSIAmount)}원입니다.`
@@ -381,7 +412,7 @@ function Dashboard({ formData, result, adminData, isDataLoading, customSiMap, ac
         <div>
           <h2 className="text-3xl font-bold text-hcNavy tracking-tight">해외 생계비 산정 결과</h2>
           <p className="text-hcGray-800 mt-2 text-sm">
-            MERCER 기반 SI 산출 및 서울 기준 정규화 COL 지수 동기화 결과
+            글로벌 표준 및 당사 자체 하이브리드 기준 산출 기반 SI 산출 및 서울 기준 정규화 COL 지수 동기화 결과
           </p>
         </div>
         {isReady && (
@@ -464,7 +495,7 @@ function Dashboard({ formData, result, adminData, isDataLoading, customSiMap, ac
                     <Info className="w-3.5 h-3.5 text-hcBlue" /> SI 산출 방법론 (Methodology Insight)
                   </h5>
                   <p className="mb-3 leading-relaxed">
-                    <strong className="text-hcGray-800">MERCER 점진적 비율 적용 원리:</strong> 소득이 높아질수록 가처분 소득 중 필수 생계비(Spendable Income)가 차지하는 비중은 점진적으로 감소한다는 한계 체감 모델에 따랐습니다.
+                    <strong className="text-hcGray-800">글로벌 표준 및 당사 자체 하이브리드 기준 산출 점진적 비율 적용 원리:</strong> 소득이 높아질수록 가처분 소득 중 필수 생계비(Spendable Income)가 차지하는 비중은 점진적으로 감소한다는 한계 체감 모델에 따랐습니다.
                   </p>
                   <div className="mb-3">
                     <div className="text-[10px] font-bold text-hcGray-500 mb-1">({result?.targetYear || new Date().getFullYear()}년도 기준 (단신 인컴커브))</div>
@@ -536,7 +567,7 @@ function Dashboard({ formData, result, adminData, isDataLoading, customSiMap, ac
             <DollarSign className="w-12 h-12 text-hcGray-200 mb-3" />
             <p className="font-medium">모든 정보를 입력한 후 '생계비 산정 실행' 버튼을 클릭해주세요.</p>
             <p className="text-sm mt-1 text-hcGray-800 bg-yellow-50 p-2 rounded text-yellow-800 border border-yellow-200 mt-4 text-center">
-              본 지수는 미 국무부 데이터를 바탕으로 <strong>서울(100) 대비 상대 물가를 산출한 정규화 지수</strong>를 기준으로 산출합니다.
+              본 지수는 글로벌 표준 및 당사 자체 하이브리드 기준 산출 데이터를 바탕으로 <strong>서울(100) 대비 상대 물가를 산출한 정규화 지수</strong>를 기준으로 산출합니다.
             </p>
           </div>
         </div>
@@ -552,21 +583,21 @@ function Dashboard({ formData, result, adminData, isDataLoading, customSiMap, ac
           <div className="grid md:grid-cols-2 gap-4 mb-4">
             <div className="bg-white p-5 rounded-lg border border-hcGray-200 shadow-sm hover:shadow-md transition-shadow">
               <h4 className="font-bold text-sm text-hcGray-800 mb-3 border-b border-hcGray-100 pb-2 flex justify-between items-center">
-                <span>1. 미 국무부 COL 지수 신뢰도</span>
+                <span>1. 글로벌 표준 및 당사 자체 하이브리드 기준 산출 COL 지수 신뢰도</span>
                 <span className="text-[10px] bg-hcGray-100 text-hcGray-500 px-2 py-0.5 rounded">RPI</span>
               </h4>
               <p className="text-xs text-hcGray-600 leading-relaxed mb-3">
-                <span className="font-semibold text-hcGray-800">출처:</span> 미 국무부 Retail Price Index (Washington D.C. = 100)
+                <span className="font-semibold text-hcGray-800">출처:</span> 글로벌 표준 및 당사 자체 하이브리드 기준 산출 Retail Price Index (New York = 100)
               </p>
               <div className="text-sm text-hcGray-800 leading-relaxed bg-blue-50/50 p-3 rounded-md border border-blue-100/50">
                 <span className="font-semibold text-blue-900 block mb-1">현재 수치 산출 근거:</span>
-                Washington(100) 기준, 서울은 <strong>[{result.seoulBaseRpi}]</strong>, {formData.hostCity}은(는) <strong>[{result.rawHostCol}]</strong>이므로,
+                뉴욕(100) 기준, 서울은 <strong>[{result.seoulBaseRpi}]</strong>, {formData.hostCity}은(는) <strong>[{result.rawHostCol}]</strong>이므로,
                 최종 COL 지수는 <strong className="text-blue-700 bg-white px-1 py-0.5 rounded shadow-sm border border-blue-100">[{result.rawHostCol} / {result.seoulBaseRpi} = {(result.normalizedColMultiplier * 100).toFixed(1)}]</strong>로 산출되었습니다.
               </div>
               <div className="flex flex-wrap gap-2 text-[11px] text-hcGray-500 mt-4">
                 <span className="font-semibold bg-hcGray-100 px-1.5 py-0.5 rounded">트렌드 비교</span>
-                <span className="border border-hcGray-200 px-1.5 py-0.5 rounded">직전 분기('26년 Q1): {((result.normalizedColMultiplier * 100) * 1.02).toFixed(1)} (서울 100 대비)</span>
-                <span className="border border-hcGray-200 px-1.5 py-0.5 rounded">전년 동기('25년 Q2): {((result.normalizedColMultiplier * 100) * 0.95).toFixed(1)} (서울 100 대비)</span>
+                <span className="border border-hcGray-200 px-1.5 py-0.5 rounded">직전 분기('26년 Q1): {((result.normalizedColMultiplier * 100) * 1.02).toFixed(1)} (서울 90 대비)</span>
+                <span className="border border-hcGray-200 px-1.5 py-0.5 rounded">전년 동기('25년 Q2): {((result.normalizedColMultiplier * 100) * 0.95).toFixed(1)} (서울 90 대비)</span>
               </div>
             </div>
 
@@ -592,79 +623,107 @@ function Dashboard({ formData, result, adminData, isDataLoading, customSiMap, ac
           </div>
         </div>
       )}
+            {/* 운영 매뉴얼 안내 영역 */}
+      <div className="mt-8">
+        <AdminGuideAccordion />
+      </div>
+
       {/* References & Methodology Section */}
       <div className="mt-8 mb-4">
-        <h3 className="text-sm font-bold text-hcNavy mb-3 border-b border-hcGray-200 pb-2">참조 및 산출 근거 (References & Methodology)</h3>
-        <div className="grid md:grid-cols-3 gap-4">
-          <a href="https://www.mercer.com/insights/total-rewards/talent-mobility/cost-of-living.html" target="_blank" rel="noreferrer" className="flex items-start gap-3 p-3 bg-white rounded-lg border border-hcGray-200 hover:border-hcBlue hover:shadow-sm transition-all group">
-            <div className="w-8 h-8 rounded bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              <FileText className="w-4 h-4" />
+        <h3 className="text-sm font-bold text-hcNavy mb-3 border-b border-hcGray-200 pb-2">산출 근거 및 지수 활용 당위성 (Methodology & Justification)</h3>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* 당위성 설명 모달/카드 열기 버튼 */}
+          <button
+            onClick={() => setIsJustificationOpen(!isJustificationOpen)}
+            className="flex items-start gap-3 p-4 bg-white rounded-lg border border-hcGray-200 hover:border-hcBlue hover:shadow-md transition-all group text-left"
+          >
+            <div className="w-10 h-10 rounded bg-red-50 text-red-600 flex items-center justify-center shrink-0 group-hover:bg-red-600 group-hover:text-white transition-colors">
+              <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-hcGray-800 group-hover:text-hcBlue">MERCER Cost of Living</h4>
-              <p className="text-[10px] text-hcGray-500 mt-0.5 line-clamp-2">생계비 산정 지수 방법론 참조 (SI Curve 모델만)</p>
+              <h4 className="text-sm font-bold text-hcGray-800 group-hover:text-hcBlue">유료 상용 지수 (머서, ECA 등)의 한계</h4>
+              <p className="text-xs text-hcGray-500 mt-1">왜 우리는 머서 지수를 배제하는가? (클릭하여 당위성 확인)</p>
             </div>
-          </a>
-          <a href="https://aoprals.state.gov/" target="_blank" rel="noreferrer" className="flex items-start gap-3 p-3 bg-white rounded-lg border border-hcGray-200 hover:border-hcBlue hover:shadow-sm transition-all group">
-            <div className="w-8 h-8 rounded bg-red-50 text-red-600 flex items-center justify-center shrink-0 group-hover:bg-red-600 group-hover:text-white transition-colors">
-              <CheckCircle className="w-4 h-4" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-hcGray-800 group-hover:text-hcBlue">U.S. State Dept.</h4>
-              <p className="text-[10px] text-hcGray-500 mt-0.5 line-clamp-2">미 국무부 Office of Allowances 물가지수(COL) 원천 데이터</p>
-            </div>
-          </a>
-          <a href="https://www.oecdbetterlifeindex.org/" target="_blank" rel="noreferrer" className="flex items-start gap-3 p-3 bg-white rounded-lg border border-hcGray-200 hover:border-hcBlue hover:shadow-sm transition-all group">
-            <div className="w-8 h-8 rounded bg-green-50 text-green-600 flex items-center justify-center shrink-0 group-hover:bg-green-600 group-hover:text-white transition-colors">
-              <ShieldCheck className="w-4 h-4" />
+          </button>
+
+          {/* UN ICSC 다이렉트 다운로드 링크 카드 */}
+          <a
+            href="https://icsc.un.org/Home/DataRPI"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-start gap-3 p-4 bg-white rounded-lg border border-hcGray-200 hover:border-green-500 hover:shadow-md transition-all group"
+          >
+            <div className="w-10 h-10 rounded bg-green-50 text-green-600 flex items-center justify-center shrink-0 group-hover:bg-green-600 group-hover:text-white transition-colors">
+              <Download className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-hcGray-800 group-hover:text-hcBlue">OECD Better Life Index</h4>
-              <p className="text-[10px] text-hcGray-500 mt-0.5 line-clamp-2">국가별 삶의 비용 및 가구 소비 트렌드 객관성 지표 참조</p>
+              <h4 className="text-sm font-bold text-hcGray-800 group-hover:text-green-600">유엔 지수 (UN ICSC RPI) 원천 데이터</h4>
+              <p className="text-xs text-hcGray-500 mt-1">국제기구 표준 주거비 제외 생계비 지수 다운로드 (바로가기)</p>
             </div>
           </a>
         </div>
-      </div>
-      {/* 데이터 거버넌스 정보 영역 */}
-      {adminData && (
-        <div className="mt-auto pt-16 -mx-8 pb-12">
-          <div className="p-4 bg-hcGray-100 border-y border-hcGray-200 flex flex-wrap gap-4 justify-between items-center text-xs text-hcGray-800">
-            <div>
-              <strong>데이터 업데이트 정보</strong>
-              <span className="mx-2">|</span>
-              <span className="text-hcBlue font-medium">본 지수는 미 국무부 데이터를 바탕으로 서울(100) 대비 상대 물가를 산출한 결과입니다.</span>
-            </div>
-            <div className="flex gap-4 text-right">
-              <div>
-                <span className="opacity-70">U.S. DOS Index:</span> <strong className="ml-1">{adminData?.colData?.version}</strong>
-                <a href={adminData?.colData?.sourceUrl} target="_blank" rel="noreferrer" className="ml-2 underline text-hcBlue">Source</a>
-              </div>
-              <div>
-                <span className="opacity-70">Exchange Rates:</span> <strong className="ml-1">{adminData?.exchangeData?.meta?.lastUpdated} ({adminData?.exchangeData?.meta?.source})</strong>
+
+        {/* 당위성 상세 설명 카드 (토글) */}
+        {isJustificationOpen && (
+          <div className="mt-4 bg-hcNavy rounded-xl border border-blue-800 shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="p-6">
+              <h4 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-yellow-400" />
+                당사의 UN ICSC 적용 당위성 (Cost Control)
+              </h4>
+              <p className="text-sm text-blue-100 mb-6 border-b border-blue-800/50 pb-4">
+                당사의 예산 효율화 및 완벽한 비용 통제를 위한 핵심 전략입니다.
+              </p>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="bg-white/10 p-5 rounded-lg border border-white/5">
+                  <h5 className="font-bold text-red-300 mb-3 flex items-center gap-2">
+                    <X className="w-4 h-4" /> 유료 상용 지수 (머서 등)
+                  </h5>
+                  <p className="text-sm text-blue-50 leading-relaxed">
+                    주재원 프리미엄 위주로 구글 등 빅테크가 주로 활용합니다. 그러나 장바구니 물가에 <strong>'주거비 거품'</strong>이 심하게 포함되어 있어 예산 누수 발생 위험이 매우 큽니다.
+                  </p>
+                </div>
+                <div className="bg-white/10 p-5 rounded-lg border border-white/5">
+                  <h5 className="font-bold text-green-400 mb-3 flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" /> 우리의 해결책 (UN ICSC)
+                  </h5>
+                  <p className="text-sm text-blue-50 leading-relaxed">
+                    당사는 <strong>주거비와 학비를 실비로 이미 따로 지급</strong>하고 있습니다. 주거비가 제대로 분리되지 않는 상용 지수를 쓰면 예산이 이중 지급됩니다. 따라서 <strong>'주거비 제외 지수'</strong>를 제공하는 유엔 데이터를 사용하는 것이 논리적 정답입니다.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
 function AdminModal({ adminData, setAdminData, customSiMap = {}, setCustomSiMap, onClose, onForceUpdate, annualSiMap }) {
   const [activeTab, setActiveTab] = useState('sync'); // 'sync' | 'si'
-  const [jsonText, setJsonText] = useState(JSON.stringify(adminData, null, 2));
   const [error, setError] = useState('');
+  const [localExchangeRates, setLocalExchangeRates] = useState(adminData?.exchangeData?.rates || {});
+  const [localIndices, setLocalIndices] = useState(adminData?.colData?.indices || {});
   // SI State
   const [localSiMap, setLocalSiMap] = useState({ ...customSiMap });
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [newYearInput, setNewYearInput] = useState('');
   const handleSaveJson = () => {
     try {
-      const parsed = JSON.parse(jsonText);
+      const parsed = JSON.parse(JSON.stringify(adminData));
+      if (!parsed.exchangeData) parsed.exchangeData = { rates: {} };
+      parsed.exchangeData.rates = localExchangeRates;
+
+      if (!parsed.colData) parsed.colData = { indices: {} };
+      parsed.colData.indices = localIndices;
+
       setAdminData(parsed);
-      sessionStorage.setItem('expatValueAdminData', JSON.stringify(parsed));
+      localStorage.setItem('expatValueAdminData_v5', JSON.stringify(parsed));
       onClose();
     } catch (e) {
-      setError('JSON 형식이 올바르지 않습니다.');
+      setError('데이터 저장 중 오류가 발생했습니다.');
     }
   };
   const handleSaveSiMap = () => {
@@ -707,6 +766,9 @@ function AdminModal({ adminData, setAdminData, customSiMap = {}, setCustomSiMap,
     ...Object.keys(localSiMap)
   ])).sort((a, b) => b - a);
   const activeSiData = localSiMap[selectedYear] || annualSiMap[selectedYear] || annualSiMap[2026];
+  const today = new Date();
+  const targetYear = today.getFullYear() - 1;
+  const formattedDate = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
       <div className="bg-white rounded-xl shadow-2xl w-[800px] max-w-[95%] flex flex-col overflow-hidden max-h-[90vh]">
@@ -735,28 +797,49 @@ function AdminModal({ adminData, setAdminData, customSiMap = {}, setCustomSiMap,
         </div>
         <div className="p-6 flex-1 overflow-y-auto">
           {activeTab === 'sync' && (
-            <div className="flex flex-col gap-4 h-full">
-              <div className="flex justify-between items-start">
-                <p className="text-sm text-hcGray-800 flex-1">
-                  <strong>미 국무부(U.S. DOS)</strong> 데이터 구조와 <strong>e-나라지표 환율</strong>을 관리합니다. <br />
-                  자동 업데이트가 실패하거나, 수동으로 최신 버전(Override)을 적용하고 싶을 때 직접 편집하세요.
-                </p>
-                <button
-                  onClick={onForceUpdate}
-                  className="px-4 py-2 bg-hcGray-100 hover:bg-hcGray-200 border border-hcGray-200 text-hcGray-800 rounded-md text-sm font-bold flex items-center gap-2 transition-colors"
-                >
-                  <RefreshCw className="w-4 h-4" /> API 강제 동기화
-                </button>
+            <div className="flex flex-col gap-6 h-full">
+              <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+                <h3 className="font-bold text-green-900 mb-2 flex items-center gap-2">
+                  <Coins className="w-4 h-4" /> {targetYear}년 평균 환율 입력
+                </h3>
+                <p className="text-xs text-green-800 mb-4">{targetYear}년 일별 평균 환율 기준 (현재 조회일: {formattedDate})</p>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {Object.entries(localExchangeRates).map(([currency, rate]) => (
+                    <div key={currency} className="flex flex-col bg-white p-2 rounded border border-green-200 shadow-sm">
+                      <label className="text-[10px] font-bold text-hcGray-500 mb-1">{currency}</label>
+                      <input
+                        type="number"
+                        className="w-full text-sm font-mono text-hcBlue p-1 focus:outline-none focus:ring-1 focus:ring-hcBlue rounded"
+                        value={rate}
+                        onChange={(e) => setLocalExchangeRates(prev => ({ ...prev, [currency]: parseFloat(e.target.value) || 0 }))}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <textarea
-                className="w-full h-[400px] p-4 bg-hcGray-50 border border-hcGray-200 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-hcBlue"
-                value={jsonText}
-                onChange={(e) => {
-                  setJsonText(e.target.value);
-                  setError('');
-                }}
-              />
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mt-2">
+                <h3 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
+                  <Globe className="w-4 h-4" /> 유엔(UN ICSC) 생계비 지수 입력
+                </h3>
+                <p className="text-xs text-blue-800 mb-4">현재 적용 중인 도시별 생계비 지수 (현재 조회일: {formattedDate})</p>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-h-[300px] overflow-y-auto pr-2">
+                  {Object.entries(localIndices).map(([city, indexVal]) => (
+                    <div key={city} className="flex flex-col bg-white p-2 rounded border border-blue-200 shadow-sm">
+                      <label className="text-[10px] font-bold text-hcGray-500 mb-1">{city}</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        className="w-full text-sm font-mono text-hcBlue p-1 focus:outline-none focus:ring-1 focus:ring-hcBlue rounded"
+                        value={indexVal}
+                        onChange={(e) => setLocalIndices(prev => ({ ...prev, [city]: parseFloat(e.target.value) || 0 }))}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
               {error && <p className="text-red-500 text-sm font-bold">{error}</p>}
             </div>
           )}
@@ -766,7 +849,7 @@ function AdminModal({ adminData, setAdminData, customSiMap = {}, setCustomSiMap,
                 <div>
                   <h3 className="font-bold text-blue-900 mb-1">연도별 생계비(SI) 비율 관리</h3>
                   <p className="text-xs text-blue-800">
-                    MERCER 기반의 연간 소득구간별 단신/가족 비율을 설정합니다. 계산 로직은 여기서 설정된 독립된 곡선을 바탕으로 보간 연산을 수행합니다.
+                    글로벌 표준 및 당사 자체 하이브리드 기준 산출 기반의 연간 소득구간별 단신/가족 비율을 설정합니다. 계산 로직은 여기서 설정된 독립된 곡선을 바탕으로 보간 연산을 수행합니다.
                   </p>
                 </div>
               </div>
@@ -883,7 +966,6 @@ function CustomCityModal({ onClose, onSave, extendedRpiDb = [] }) {
 
   const wrapperRef = useRef(null);
 
-  const SEOUL_BASE_RPI = 48.6;
   const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'VND', 'SGD', 'SAR', 'KRW', 'CAD', 'AUD', 'AED', 'INR', 'BRL'];
   useEffect(() => {
     function handleClickOutside(event) {
@@ -961,7 +1043,7 @@ function CustomCityModal({ onClose, onSave, extendedRpiDb = [] }) {
 const getPreviewNormalized = () => {
   const rpiNum = parseFloat(formData.rpi);
   if (isNaN(rpiNum)) return '-';
-  return ((rpiNum / SEOUL_BASE_RPI) * 100).toFixed(2);
+  return ((rpiNum / 90) * 100).toFixed(2);
   const hasSearchInput = (formData.city || formData.country) && formData.city.length + formData.country.length > 0;
   const showNoDataWarning = showSuggestions && suggestions.length === 0 && hasSearchInput;
   return (
@@ -1036,12 +1118,12 @@ const getPreviewNormalized = () => {
             {showNoDataWarning && (
               <div className="p-3 bg-orange-50 border border-orange-200 rounded-md text-xs text-orange-800 flex items-start gap-2">
                 <InfoIcon className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>데이터를 찾을 수 없습니다. 미 국무부 사이트에서 조회 후 직접 입력해주세요.</span>
+                <span>데이터를 찾을 수 없습니다. 글로벌 표준 및 당사 자체 하이브리드 기준 산출 사이트에서 조회 후 직접 입력해주세요.</span>
               </div>
             )}
             <div className="pt-2 border-t border-hcGray-100">
               <div className="flex justify-between items-end mb-1">
-                <label className="block text-xs font-semibold text-hcGray-800">미 국무부 원본 RPI 지수 (수동 수정 가능)</label>
+                <label className="block text-xs font-semibold text-hcGray-800">글로벌 표준 및 당사 자체 하이브리드 기준 산출 원본 RPI 지수 (수동 수정 가능)</label>
                 <a
                   href="https://aoprals.state.gov/"
                   target="_blank"
@@ -1098,9 +1180,172 @@ function InfoIcon(props) {
     </svg>
   );
 }
+
+const AdminGuideAccordion = () => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-hcGray-200 overflow-hidden mb-6 transition-all duration-300">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-6 py-4 flex items-center justify-between bg-gradient-to-r from-hcNavy to-hcBlue text-white hover:opacity-95 transition-opacity"
+      >
+        <div className="flex items-center gap-3">
+          <FileText className="w-6 h-6 text-yellow-300" />
+          <h3 className="font-bold text-lg tracking-tight">[필독] 누구나 할 수 있는 연 1회 시스템 업데이트 가이드</h3>
+        </div>
+        <div className="flex items-center gap-2 text-sm font-medium bg-white/20 px-3 py-1 rounded-full">
+          {isOpen ? '매뉴얼 닫기' : '클릭해서 열기'}
+          {isOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+        </div>
+      </button>
+
+      {isOpen && (
+        <div className="p-8 bg-gray-50 border-t border-hcGray-200 space-y-8">
+
+          {/* 1. 운영 철학 */}
+          <section>
+            <h4 className="text-lg font-bold text-hcNavy mb-3 flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-blue-600" />
+              1. 왜 수동으로 업데이트 하나요? (시스템 운영 철학)
+            </h4>
+            <div className="bg-white p-5 rounded-lg border border-hcGray-200 text-hcGray-700 text-sm leading-relaxed space-y-3 shadow-sm">
+              <p>본 시스템은 외부 실시간 환율이나 물가 API를 의도적으로 차단하고 <strong>내부 장부(정적 입력) 방식</strong>으로 설계되었습니다.</p>
+              <ul className="list-disc pl-5 space-y-2 font-medium">
+                <li><strong>안정적인 예산 통제:</strong> 매일 환율이 바뀌면 주재원들의 불만이 폭주합니다. <strong>'직전 연도 1년 치 평균 환율'</strong>을 고정값으로 사용하여 1년간 흔들림 없는 예산을 집행합니다.</li>
+                <li><strong>중복 지급 완벽 차단:</strong> 유료 상용 지수 대신, 주거비와 학비가 완벽히 제외된 <strong>유엔(UN ICSC) 지수</strong>를 사용하여 회사 실비 지원분과의 중복을 막고 수천만 원의 구독료를 아낍니다.</li>
+              </ul>
+            </div>
+          </section>
+
+          {/* 2. 환율 데이터 확보 가이드 */}
+          <section>
+            <h4 className="text-lg font-bold text-hcNavy mb-3 flex items-center gap-2 border-b border-hcGray-200 pb-2">
+              <Coins className="w-5 h-5 text-green-600" />
+              2. 기준 환율(전년도 연평균) 찾는 방법
+            </h4>
+            <div className="pl-7 space-y-4 mt-4">
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                <p className="font-bold text-green-900 mb-2">💡 필수 원칙: 무조건 '직전 연도의 1월 1일 ~ 12월 31일 평균 환율'을 씁니다.</p>
+                <p className="text-sm text-green-800">예시: 현재가 2026년이라면, 2025년 전체 평균 환율을 검색하여 시스템에 입력해야 합니다.</p>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</div>
+                <div>
+                  <p className="font-bold text-base text-hcGray-800">한국은행 경제통계시스템(ECOS) 접속</p>
+                  <a href="https://ecos.bok.or.kr/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-4 py-2 mt-2 bg-white hover:bg-hcGray-50 border border-hcGray-300 rounded-md text-hcBlue font-bold transition-colors text-sm shadow-sm">
+                    <ExternalLink className="w-4 h-4" /> 한국은행 ECOS 바로가기
+                  </a>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</div>
+                <div>
+                  <p className="font-bold text-base text-hcGray-800">연평균 환율 데이터 조회 순서</p>
+                  <ul className="list-disc pl-5 mt-2 space-y-1 text-sm text-hcGray-700 bg-white p-3 rounded border border-hcGray-200">
+                    <li>상단 메뉴에서 <strong>[통계검색] ➔ [100대 통계지표]</strong> 또는 <strong>[환율]</strong> 메뉴 클릭</li>
+                    <li>조회 주기를 <strong>'년(Year)'</strong>으로 변경</li>
+                    <li>조회 기간을 <strong>'직전 연도'</strong> (예: 2025년)로 설정하고 검색</li>
+                    <li>주요 통화(USD, EUR, JPY, GBP 등)의 <strong>연평균 매매기준율</strong> 숫자를 메모합니다. <br /><span className="text-xs text-red-500 font-bold">※ 주의: JPY(엔화)는 100엔 기준이므로 시스템 입력 시 1엔 단위로 나누어 입력하세요. (예: 915.00 ➔ 9.15)</span></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* 3. UN RPI 다운로드 가이드 */}
+          <section>
+            <h4 className="text-lg font-bold text-hcNavy mb-3 flex items-center gap-2 border-b border-hcGray-200 pb-2">
+              <Download className="w-5 h-5 text-blue-600" />
+              3. 유엔(UN ICSC) 생계비 엑셀 다운로드 방법
+            </h4>
+            <div className="pl-7 space-y-4 mt-4">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</div>
+                <div>
+                  <p className="font-bold text-base text-hcGray-800">다이렉트 링크로 RPI 페이지 접속</p>
+                  <a href="https://icsc.un.org/Home/DataRPI" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-4 py-2 mt-2 bg-white hover:bg-hcGray-50 border border-hcGray-300 rounded-md text-hcBlue font-bold transition-colors text-sm shadow-sm">
+                    <ExternalLink className="w-4 h-4" /> 유엔 RPI 다운로드 바로가기
+                  </a>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</div>
+                <div>
+                  <p className="font-bold text-base text-hcGray-800">최신 ZIP 파일 다운로드 및 압축 해제</p>
+                  <p className="text-sm text-hcGray-600 mt-1">
+                    페이지 가운데 <strong>[Downloads]</strong> 박스를 찾은 후, <strong><code>compressed.zip</code></strong>을 클릭하여 가장 최신 연월의 파일을 바탕화면에 다운로드하고 압축을 풀어 엑셀을 엽니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* 4. 엑셀에서 진짜 숫자 찾기 (핵심) */}
+          <section className="bg-yellow-50/80 p-6 rounded-xl border border-yellow-200">
+            <h4 className="text-lg font-bold text-hcNavy mb-3 flex items-center gap-2">
+              <Search className="w-5 h-5 text-yellow-600" />
+              4. 엑셀에서 정확한 지수(숫자) 찾는 법 (★가장 중요)
+            </h4>
+            <div className="pl-7 text-hcGray-700 space-y-4 text-sm">
+              <p>수많은 숫자 중 우리가 입력할 숫자는 딱 하나입니다.</p>
+
+              <div className="bg-white p-4 rounded-lg border border-yellow-300 shadow-sm">
+                <p className="font-bold text-hcNavy mb-2 flex items-center gap-2"><span className="bg-hcGray-100 px-2 py-0.5 rounded text-xs">Step 1</span> 도시 검색</p>
+                <p>엑셀 파일에서 <strong>Ctrl + F (찾기)</strong>를 누르고, <strong>'Duty Station'</strong> 열에서 <code>Seoul</code>, <code>Tokyo</code> 등 영문 도시명을 찾습니다.</p>
+              </div>
+
+              <div className="bg-white p-4 rounded-lg border border-yellow-300 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">절대 주의!</div>
+                <p className="font-bold text-hcNavy mb-2 flex items-center gap-2"><span className="bg-hcGray-100 px-2 py-0.5 rounded text-xs">Step 2</span> 주거비 제외 지수 확인</p>
+                <p className="mb-2">도시를 찾았다면, 오른쪽으로 칸을 이동하여 맨 끝에 있는 <strong className="text-blue-700 bg-blue-50 px-1 rounded text-base border border-blue-200">In-area excluding housing</strong> 열의 숫자를 확인합니다. (보통 70 ~ 130 사이의 숫자입니다.)</p>
+                <p className="text-red-600 font-bold bg-red-50 p-2 rounded border border-red-100">
+                  🚫 Multiplier 칸의 작은 숫자(10~80)는 수당 비율이므로 절대 입력하면 안 됩니다!
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* 5. 시스템 입력 및 저장 */}
+          <section>
+            <h4 className="text-lg font-bold text-hcNavy mb-3 flex items-center gap-2 border-b border-hcGray-200 pb-2">
+              <Database className="w-5 h-5 text-hcBlue" />
+              5. 시스템에 입력하고 저장하기
+            </h4>
+            <div className="pl-7 space-y-3 mt-4 text-sm text-hcGray-700">
+              <p>1. 화면 우측 상단의 <strong>톱니바퀴(Admin Settings)</strong> 버튼을 클릭합니다.</p>
+              <p>2. 위에서 찾은 <strong>'전년도 평균 환율'</strong>과 <strong>'도시별 UN 제외 지수'</strong>를 각 도시/통화별 입력 칸에 타이핑합니다.</p>
+              <p>3. 우측 하단의 <strong className="text-hcBlue">시스템에 저장 후 적용</strong> 버튼을 누르면 즉시 시스템 전체에 최신 데이터가 반영됩니다!</p>
+            </div>
+          </section>
+
+        </div>
+      )}
+    </div>
+  );
+};
+
 function App() {
-  const [adminData, setAdminData] = useState(null);
-  const [isDataLoading, setIsDataLoading] = useState(true);
+  const [adminData, setAdminData] = useState(() => {
+    // 💡 저장된 데이터가 있으면 불러오고, 없으면 기본값 세팅
+    const saved = localStorage.getItem('expatValueAdminData_v5');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse saved admin data", e);
+      }
+    }
+    return UN_ICSC_DATA;
+  });
+  const [isDataLoading, setIsDataLoading] = useState(false);
+
+  useEffect(() => {
+    // 🔥 이전에 강제로 넣었던 캐시 삭제 로직(localStorage.clear) 완전 제거
+    // 이제 실무자가 수정한 환율 및 데이터가 브라우저에 안전하게 영구 보존됩니다.
+  }, []);
+
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isCustomCityOpen, setIsCustomCityOpen] = useState(false);
   const [customCities, setCustomCities] = useState(DEFAULT_CITY_DATA || []);
@@ -1151,94 +1396,8 @@ function App() {
     setIsCustomCityOpen(false);
   }
   // Data Fetching Logic (Using Public Exchange Rate API for Annual Average)
-  async function fetchExternalData(force = false) {
-    setIsDataLoading(true);
 
-    try {
-      if (!force) {
-        // Cache bust by using _v4 to force loading from the new API
-        const cached = sessionStorage.getItem('expatValueAdminData_v4');
-        if (cached) {
-          setAdminData(JSON.parse(cached));
-          setIsDataLoading(false);
-          return;
-        }
-      }
-      let exchangeData;
-      const targetYear = new Date().getFullYear() - 1;
-      const startDate = `${targetYear}-01-01`;
-      const endDate = `${targetYear}-12-31`;
 
-      try {
-        // 직전 연도 1월 1일부터 12월 31일까지의 시계열 환율 데이터 호출
-        const res = await axios.get(`https://api.frankfurter.app/${startDate}..${endDate}`, { timeout: 15000 });
-        const timeSeries = res?.data?.rates || {};
-        
-        const sumRates = {};
-        const countRates = {};
-
-        for (const [date, dailyRates] of Object.entries(timeSeries)) {
-          const krwRate = dailyRates['KRW'];
-          if (!krwRate) continue; // KRW 환율 정보가 없는 날은 제외
-          
-          // API 기본 base인 EUR을 1로 포함
-          dailyRates['EUR'] = 1;
-          
-          for (const [curr, rate] of Object.entries(dailyRates)) {
-            if (rate > 0) {
-              // 1 외화 = (KRW / 외화) 원
-              const krwPerUnit = krwRate / rate;
-              sumRates[curr] = (sumRates[curr] || 0) + krwPerUnit;
-              countRates[curr] = (countRates[curr] || 0) + 1;
-            }
-          }
-        }
-        
-        // 일별 환율의 연평균 산출
-        const averageRates = {};
-        for (const curr in sumRates) {
-          averageRates[curr] = sumRates[curr] / countRates[curr];
-        }
-        
-        // Frankfurter API에서 미지원하는 통화를 위해 안전한 Fallback 데이터와 병합
-        const finalRates = { ...FALLBACK_EXCHANGE_RATES.rates, ...averageRates };
-        
-        exchangeData = {
-          rates: finalRates,
-          meta: {
-            lastUpdated: new Date().toISOString().split('T')[0],
-            source: 'Frankfurter API (Annual Average)',
-            targetYear: targetYear
-          }
-        };
-      } catch (e) {
-        console.warn("⚠️ [System] 연평균 환율 API 호출 실패. 로컬 Fallback 데이터를 사용합니다.", e);
-
-        exchangeData = {
-          ...FALLBACK_EXCHANGE_RATES,
-          meta: {
-            ...FALLBACK_EXCHANGE_RATES?.meta,
-            targetYear: targetYear
-          }
-        };
-      }
-      const newData = {
-        colData: STATE_DEPT_DATA,
-        exchangeData: exchangeData,
-        cityCurrency: CITY_CURRENCY_MAP
-      };
-      sessionStorage.setItem('expatValueAdminData_v4', JSON.stringify(newData));
-      setAdminData(newData);
-    } catch (error) {
-      console.error("데이터 동기화 치명적 오류:", error);
-      alert("데이터를 초기화하는데 실패했습니다.");
-    } finally {
-      setIsDataLoading(false);
-    }
-  }
-  useEffect(() => {
-    fetchExternalData();
-  }, []);
   // Form Auto-fill Logic with Custom Cities Merge
   useEffect(() => {
     if (!adminData) return;
@@ -1260,7 +1419,7 @@ function App() {
     let currency = '';
     if (formData?.hostCity && mergedIndices[formData.hostCity]) {
       const rawCol = mergedIndices[formData.hostCity];
-      const adjustedCol = (rawCol / SEOUL_BASE_RPI) * 100;
+      const adjustedCol = (rawCol / 90) * 100;
       hostColAdjusted = adjustedCol.toFixed(2);
 
       currency = mergedCurrencies[formData.hostCity] || 'KRW';
@@ -1305,7 +1464,7 @@ function App() {
         customCities.forEach(c => { mergedIndices[c.city] = c.rpi; });
       }
       const rawHostCol = mergedIndices[formData.hostCity] || 100;
-      const normalizedColMultiplier = rawHostCol / SEOUL_BASE_RPI;
+      const normalizedColMultiplier = rawHostCol / 90;
 
       const targetYear = new Date().getFullYear();
       const singleSiPercentage = calculateSIPercentage(baseSalaryNum, 'single', targetYear, customSiMap) || 0;
@@ -1328,7 +1487,7 @@ function App() {
         finalSIAmount: finalSIAmount,
         normalizedColMultiplier: normalizedColMultiplier,
         rawHostCol: rawHostCol,
-        seoulBaseRpi: SEOUL_BASE_RPI,
+        seoulBaseRpi: 90,
         overseasLivingCostKRW: overseasLivingCostKRW,
         exchangeRate: exchangeRateNum,
         currency: formData.currency || 'KRW',
@@ -1411,10 +1570,6 @@ function App() {
           }}
           annualSiMap={ANNUAL_SI_MAP}
           onClose={() => setIsAdminOpen(false)}
-          onForceUpdate={() => {
-            setIsAdminOpen(false);
-            fetchExternalData(true);
-          }}
         />
       )}
       {isCustomCityOpen && (
