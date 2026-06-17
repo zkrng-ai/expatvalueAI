@@ -752,6 +752,40 @@ function AdminGuideAccordion() {
   );
 }
 
+// [추가 포인트 1] App 컴포넌트 바로 위에 LoginScreen 컴포넌트 통째로 삽입
+function LoginScreen({ onLogin }) {
+  const [pwd, setPwd] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (pwd === 'HCC0109') {
+      onLogin();
+    } else {
+      setError('접근 권한이 없습니다. 비밀번호를 다시 확인하십시오.');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-hcGray-50 flex flex-col items-center justify-center p-4">
+      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-sm border border-hcGray-200">
+        <div className="flex items-center justify-center gap-2 mb-6 text-hcNavy">
+          <ShieldCheck className="w-8 h-8 text-hcBlue" />
+          <h1 className="text-2xl font-bold tracking-tight">ExpatValue AI</h1>
+        </div>
+        <p className="text-sm text-center text-hcGray-800 font-medium mb-6">시스템 접근을 위해 보안 비밀번호를 입력하십시오.</p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} placeholder="비밀번호 입력" className="w-full p-3 bg-hcGray-50 border border-hcGray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-hcBlue" autoFocus />
+          </div>
+          {error && <p className="text-red-500 text-xs font-bold text-center">{error}</p>}
+          <button type="submit" className="w-full py-3 bg-hcNavy text-white rounded-md font-bold text-sm hover:bg-hcBlue transition-colors shadow-sm">접속 승인 (Login)</button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [adminData, setAdminData] = useState(() => {
     const saved = localStorage.getItem('expatValueAdminData_v5');
@@ -766,6 +800,9 @@ function App() {
   const [customSiMap, setCustomSiMap] = useState({});
   const [formData, setFormData] = useState({ homeCountry: '대한민국', homeCity: '서울', hostCountry: '', hostCity: '', familyType: 'single', baseSalary: '', homeCol: '100.00', hostCol: '', exchangeRate: '', currency: '' });
   const [result, setResult] = useState(null);
+  
+  // [추가 포인트 2] useState 모음집 맨 아래에 인증 상태값 한 줄 추가
+  const [isAuthenticated, setIsAuthenticated] = useState(() => sessionStorage.getItem('expatValueAuth') === 'true');
 
   useEffect(() => {
     const savedCustomCities = localStorage.getItem('expatValueCustomCities');
@@ -851,6 +888,11 @@ function App() {
     let val = e.target.value.replace(/[^0-9]/g, '');
     if (val) val = parseInt(val, 10).toLocaleString('ko-KR');
     setFormData(prev => ({ ...prev, baseSalary: val }));
+  }
+
+  // [추가 포인트 3] 화면을 그리기(return) 직전에, 인증되지 않았다면 로그인 화면을 먼저 반환
+  if (!isAuthenticated) {
+    return <LoginScreen onLogin={() => { setIsAuthenticated(true); sessionStorage.setItem('expatValueAuth', 'true'); }} />;
   }
 
   return (
