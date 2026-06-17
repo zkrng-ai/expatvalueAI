@@ -208,6 +208,8 @@ function Dashboard({ formData, result, adminData, isDataLoading, customSiMap }) 
     XLSX.writeFile(wb, `ExpatValue_산출내역_${formData.hostCity}.xlsx`);
   };
 
+  const currentCurve = getActiveCurve(formData?.familyType || 'single', result?.targetYear || new Date().getFullYear(), customSiMap);
+  
   return (
     <div className="p-8 min-h-full bg-hcGray-50 flex flex-col flex-1 pb-24">
       <header className="mb-8 flex justify-between items-end shrink-0">
@@ -262,10 +264,10 @@ function Dashboard({ formData, result, adminData, isDataLoading, customSiMap }) 
                     <div className="overflow-x-auto border border-hcGray-200 rounded">
                       <table className="w-full text-center">
                         <thead className="bg-hcGray-50">
-                          <tr>{STANDARD_SI_CURVE.map((c, i) => (<th key={i} className="py-1.5 px-2 border-r last:border-0 border-hcGray-200 font-semibold">{c.bound / 10000}만</th>))}</tr>
+                         <tr>{currentCurve.map((c, i) => (<th key={i} className="py-1.5 px-2 border-r last:border-0 border-hcGray-200 font-semibold text-xs">{Math.round(c.bound / 10000).toLocaleString('ko-KR')}만</th>))}</tr>
                         </thead>
                         <tbody>
-                          <tr>{STANDARD_SI_CURVE.map((c, i) => (<td key={i} className="py-1.5 px-2 border-r last:border-0 font-mono text-hcBlue font-medium">{c.pct}%</td>))}</tr>
+                          <tr>{currentCurve.map((c, i) => (<td key={i} className="py-1.5 px-2 border-r last:border-0 font-mono text-hcBlue font-medium text-xs">{c.pct}%</td>))}</tr>
                         </tbody>
                       </table>
                     </div>
