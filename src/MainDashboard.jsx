@@ -264,10 +264,13 @@ function Dashboard({ formData, result, adminData, isDataLoading, customSiMap }) 
                     <div className="overflow-x-auto border border-hcGray-200 rounded">
                       <table className="w-full text-center">
                         <thead className="bg-hcGray-50">
-                         <tr>{currentCurve.map((c, i) => (<th key={i} className="py-1.5 px-2 border-r last:border-0 border-hcGray-200 font-semibold text-xs">{Math.round(c.bound / 10000).toLocaleString('ko-KR')}만</th>))}</tr>
+                         <tr>{STANDARD_SI_CURVE.map((c, i) => (<th key={i} className="py-1.5 px-2 border-r last:border-0 border-hcGray-200 font-semibold text-xs">{(c.bound / 10000).toLocaleString('ko-KR')}만</th>))}</tr>
                         </thead>
                         <tbody>
-                          <tr>{currentCurve.map((c, i) => (<td key={i} className="py-1.5 px-2 border-r last:border-0 font-mono text-hcBlue font-medium text-xs">{c.pct}%</td>))}</tr>
+                          <tr>{STANDARD_SI_CURVE.map((c, i) => {
+  const calculatedPct = calculateSIPercentage(c.bound, formData?.familyType || 'single', result?.targetYear || new Date().getFullYear(), customSiMap);
+  return (<td key={i} className="py-1.5 px-2 border-r last:border-0 font-mono text-hcBlue font-medium text-xs">{calculatedPct.toFixed(2)}%</td>);
+})}</tr>
                         </tbody>
                       </table>
                     </div>
