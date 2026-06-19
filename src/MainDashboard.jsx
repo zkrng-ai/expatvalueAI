@@ -251,62 +251,79 @@ function Dashboard({ formData, result, adminData, isDataLoading, customSiMap }) 
         <div className="bg-white rounded-xl shadow-sm border border-hcGray-100 flex-1 flex flex-col">
           <div className="p-6 space-y-4 relative">
             <div className="absolute left-[39px] top-10 bottom-10 w-0.5 bg-hcGray-100 z-0"></div>
+            
+            {/* Step 1 */}
             <div className="relative z-10 flex items-start gap-4">
               <div className="w-8 h-8 rounded-full bg-hcBlue text-white flex items-center justify-center font-bold text-sm shrink-0 border-4 border-white shadow-sm">1</div>
               <div className="bg-hcGray-50/50 p-4 rounded-lg border border-hcGray-100 flex-1">
-                <h4 className="font-bold text-hcNavy mb-1">국내 생계비(SI) 산출</h4>
-                <p className="text-sm text-hcGray-800">입력 연봉 <strong>{formatCurrency(result?.baseSalary, 'KRW')}</strong> 기준, 소득 구간별 기본(단신) SI 비중 <strong>{result?.singleSiPercentage?.toFixed(2)}%</strong>를 적용하여 <strong>{formatCurrency(result?.baseSIAmount, 'KRW')}</strong>이 산출되었습니다.</p>
+                <h4 className="font-bold text-hcNavy mb-1">Step 1. 국내 기본 생계비(SI) 산출</h4>
+                <p className="text-sm text-hcGray-800">입력 연봉 <strong>{formatCurrency(result?.baseSalary, 'KRW')}</strong> 기준, 소득 구간별 기본(단신) SI 비중 <strong>{result?.singleSiPercentage?.toFixed(2)}%</strong>를 적용하여 기본 기준액 <strong>{formatCurrency(result?.baseSIAmount, 'KRW')}</strong>이 산출되었습니다.</p>
                 <div className="mt-3 text-[11px] text-hcGray-600 bg-white p-3 rounded-md border border-hcGray-200 shadow-sm">
-                  <h5 className="font-bold text-hcNavy mb-2 flex items-center gap-1.5 border-b border-hcGray-100 pb-1.5"><Info className="w-3.5 h-3.5 text-hcBlue" /> SI 산출 방법론 (Methodology Insight)</h5>
-                  <p className="mb-3 leading-relaxed"><strong className="text-hcGray-800">글로벌 표준 생계비 비율 적용 원리:</strong> 소득이 높아질수록 가처분 소득 중 필수 생계비(Spendable Income)가 차지하는 비중은 점진적으로 감소한다는 한계 체감 모델에 따랐습니다.</p>
+                  <h5 className="font-bold text-hcNavy mb-2 flex items-center gap-1.5 border-b border-hcGray-100 pb-1.5">🧮 SI 산출 방법론 (Methodology Insight)</h5>
+                  <p className="mb-3 leading-relaxed">소득이 높아질수록 가처분 소득 중 필수 생계비(Spendable Income)가 차지하는 비중은 점진적으로 감소한다는 경제학적 한계 체감 모델에 따라 구간별 보간 연산이 적용되었습니다.</p>
                   <div className="mb-3">
                     <div className="text-[10px] font-bold text-hcGray-500 mb-1">({result?.targetYear || new Date().getFullYear()}년도 시스템 표준 보간 기준)</div>
                     <div className="overflow-x-auto border border-hcGray-200 rounded">
                       <table className="w-full text-center">
                         <thead className="bg-hcGray-50">
-                         <tr>{STANDARD_SI_CURVE.map((c, i) => (<th key={i} className="py-1.5 px-2 border-r last:border-0 border-hcGray-200 font-semibold text-xs">{(c.bound / 10000).toLocaleString('ko-KR')}만</th>))}</tr>
+                          <tr>{STANDARD_SI_CURVE.map((c, i) => (<th key={i} className="py-1.5 px-2 border-r last:border-0 border-hcGray-200 font-semibold text-xs">{(c.bound / 10000).toLocaleString('ko-KR')}만</th>))}</tr>
                         </thead>
                         <tbody>
-                          <tr>{STANDARD_SI_CURVE.map((c, i) => {
-  const calculatedPct = calculateSIPercentage(c.bound, formData?.familyType || 'single', result?.targetYear || new Date().getFullYear(), customSiMap);
-  return (<td key={i} className="py-1.5 px-2 border-r last:border-0 font-mono text-hcBlue font-medium text-xs">{calculatedPct.toFixed(2)}%</td>);
-})}</tr>
+                          <tr>
+                            {STANDARD_SI_CURVE.map((c, i) => {
+                              const calculatedPct = calculateSIPercentage(c.bound, 'single', result?.targetYear || new Date().getFullYear(), customSiMap);
+                              return (<td key={i} className="py-1.5 px-2 border-r last:border-0 font-mono text-hcBlue font-medium text-xs">{calculatedPct.toFixed(2)}%</td>);
+                            })}
+                          </tr>
                         </tbody>
                       </table>
                     </div>
                   </div>
-                  <div className="bg-blue-50/50 border border-blue-100 p-2 rounded text-blue-900 leading-relaxed" dangerouslySetInnerHTML={{ __html: interpolationText }}></div>
                 </div>
               </div>
             </div>
+
+            {/* Step 2 */}
             <div className="relative z-10 flex items-start gap-4">
               <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm shrink-0 border-4 border-white shadow-sm">2</div>
               <div className="bg-hcGray-50/50 p-4 rounded-lg border border-hcGray-100 flex-1">
-                <h4 className="font-bold text-hcNavy mb-1">가족 가산 적용</h4>
-                <p className="text-sm text-hcGray-800">{formData?.familyType === 'family' ? <>가족 동반에 따른 가산율 적용(독립 비율 <strong>{result?.finalSiPercentage?.toFixed(2)}%</strong>, 단신 대비 <strong>{result?.familyMultiplier}배</strong>)에 따라 최종 국내 기준액은 <strong>{formatCurrency(result?.finalSIAmount, 'KRW')}</strong>입니다.</> : <>단신 부임으로 별도의 가산율 적용 없이 최종 국내 기준액은 <strong>{formatCurrency(result?.finalSIAmount, 'KRW')}</strong>입니다.</>}</p>
+                <h4 className="font-bold text-hcNavy mb-1">Step 2. 가족 가산율 반영</h4>
+                <p className="text-sm text-hcGray-800">{formData?.familyType === 'family' ? <>가족 동반에 따른 가산율 적용(독립 보간 비율 <strong>{result?.finalSiPercentage?.toFixed(2)}%</strong>, 단신 대비 <strong>{result?.familyMultiplier}배</strong>)에 따라 보정된 국내 기준액은 <strong>{formatCurrency(result?.finalSIAmount, 'KRW')}</strong>입니다.</> : <>단신 부임으로 별도의 가족 가산율 적용 없이 국내 기준액 <strong>{formatCurrency(result?.finalSIAmount, 'KRW')}</strong>이 그대로 유지됩니다.</>}</p>
               </div>
             </div>
-           <div className="relative z-10 flex items-start gap-4">
+
+            {/* Step 3 */}
+            <div className="relative z-10 flex items-start gap-4">
               <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-sm shrink-0 border-4 border-white shadow-sm">3</div>
               <div className="bg-purple-50/50 p-4 rounded-lg border border-purple-100 flex-1">
-                <h4 className="font-bold text-purple-900 mb-1">도시별 물가 보전(COL)</h4>
-                <p className="text-sm text-purple-800">서울(100) 대비 파견지 상대 지수 <strong>{(result?.normalizedColMultiplier * 100)?.toFixed(1)}</strong>를곱하여 보전 될 금액은 <strong>{formatCurrency(result?.overseasLivingCostKRW, 'KRW')}</strong>입니다.</p>
+                <h4 className="font-bold text-purple-900 mb-1">Step 3. 도시별 물가 보전(COL) 및 최소 하한선 필터링</h4>
+                <p className="text-sm text-purple-800 mb-2">서울(100) 대비 파견지 상대 지수에 185%를 곱한 값과, 당사 최소 보장 한계선인 110% 중 큰 값을 최종 가중치로 선택하는 <strong>Max [UN상대지수 × 1.85, 110%]</strong> 산식을 적용합니다.</p>
+                <div className="bg-white p-3 rounded border border-purple-200 mb-2 space-y-1 text-xs font-medium text-purple-900">
+                  <p>• 서울(100) 대비 파견지 순수 상대 지수: <strong>{(result?.normalizedColMultiplier * 100)?.toFixed(2)}%</strong></p>
+                  <p>• 상용지수 프리미엄 대체율 반영 가산 (지수 × 185%): <strong>{(result?.normalizedColMultiplier * 1.85 * 100)?.toFixed(2)}%</strong></p>
+                  <p className="pt-1.5 border-t border-purple-100 font-bold text-hcNavy flex justify-between">
+                    <span>➡️ 최종 적용 보전율 (110% 하한선 필터링 결과):</span>
+                    <span>{(result?.appliedColMultiplier * 100)?.toFixed(1)}%</span>
+                  </p>
+                </div>
+                <p className="text-xs text-purple-700 leading-relaxed bg-purple-100/30 p-2 rounded">💡 <strong>하한선(110%) 보장 명분:</strong> 물가가 낮은 저개발국에 가더라도 주재원의 현지 기본 생계 보장 및 관세·운송비가 가산된 한국산 공산품/식자재 소비 환경을 필수적으로 구제하기 위한 안전장치입니다.</p>
+                <p className="text-sm text-purple-800 mt-3">최종 보전율을 적용한 원화 환산 생계비는 <strong>{formatCurrency(result?.overseasLivingCostKRW, 'KRW')}</strong>입니다.</p>
               </div>
             </div>
+
+            {/* Step 4 */}
             <div className="relative z-10 flex items-start gap-4">
               <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-sm shrink-0 border-4 border-white shadow-sm">4</div>
               <div className="bg-green-50/50 p-4 rounded-lg border border-green-100 flex-1">
-                <h4 className="font-bold text-green-900 mb-2">통화 환산</h4>
-                <div className="text-sm text-green-800 space-y-1">
-                  <p><span className="inline-block w-16 opacity-80">조회일:</span><strong>{new Date().toISOString().split('T')[0]}</strong></p>
-                  <p><span className="inline-block w-16 opacity-80">적용 환율:</span><strong>{adminData?.exchangeData?.meta?.targetYear}년 연평균(1/1~12/31)</strong></p>
-                  <p className="pt-2 border-t border-green-200 mt-2">해당 연평균 환율 <strong>{new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(result?.exchangeRate)}</strong>을 적용하여 최종 현지 통화 <strong>{formatCurrency(result?.finalLocalCurrencyAmount, result?.currency)} {result?.currency}</strong>가 산출되었습니다.</p>
+                <h4 className="font-bold text-green-900 mb-1">Step 4. 직전년도 연평균 환율 기반 통화 환산</h4>
+                <p className="text-sm text-green-800 mb-2">당사 회계 기준 및 예산 집행의 안정성 통제를 위해 변동성이 배제된 직전년도 일별 매매기준율의 연평균 값을 고정 적용합니다.</p>
+                <div className="text-xs text-green-900 space-y-1 bg-white p-2.5 rounded border border-green-200 mb-2 font-medium">
+                  <p><span className="inline-block w-20 text-hcGray-500">• 적용 환율:</span> 1 {result?.currency} = <strong>{new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(result?.exchangeRate)} KRW</strong></p>
                 </div>
+                <p className="text-sm text-green-800">원화 생계비에 환율을 반영하여 주재원이 현지에서 최종 수령할 금액은 <strong>{formatCurrency(result?.finalLocalCurrencyAmount, result?.currency)} {result?.currency}</strong>로 확정 도출되었습니다.</p>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
       {!isReady && (
         <div className="bg-white rounded-xl shadow-sm border border-hcGray-100 flex-1 overflow-hidden flex flex-col mb-8">
