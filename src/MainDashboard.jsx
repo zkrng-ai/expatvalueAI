@@ -363,16 +363,23 @@ function Dashboard({ formData, result, adminData, isDataLoading, customSiMap }) 
         {isJustificationOpen && (
           <div className="mt-4 bg-hcNavy rounded-xl border border-blue-800 shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="p-6">
-              <h4 className="text-lg font-bold text-white mb-2 flex items-center gap-2"><FileText className="w-5 h-5 text-yellow-400" />당사의 UN ICSC 적용 당위성 (Cost Control)</h4>
-              <p className="text-sm text-blue-100 mb-6 border-b border-blue-800/50 pb-4">당사의 예산 효율화 및 완벽한 비용 통제를 위한 핵심 운영 방침입니다.</p>
+              <h4 className="text-lg font-bold text-white mb-2 flex items-center gap-2"><FileText className="w-5 h-5 text-yellow-400" />산정 근거 및 지수 활용 당위성</h4>
+              <p className="text-sm text-blue-100 mb-6 border-b border-blue-800/50 pb-4">비용 효율화 및 글로벌 표준 지수 반영을 위한 핵심 운영 방침</p>
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-white/10 p-5 rounded-lg border border-white/5">
-                  <h5 className="font-bold text-red-300 mb-3 flex items-center gap-2"><X className="w-4 h-4" /> 유료 상용 지수 (머서 등)</h5>
-                  <p className="text-sm text-blue-50 leading-relaxed">주재원 프리미엄 위주로 구글 등 빅테크가 주로 활용합니다. 그러나 장바구니 물가에 <strong>'주거비 거품'</strong>이 심하게 포함되어 있어 예산 누수 발생 위험이 매우 큽니다.</p>
+                  <h5 className="font-bold text-red-300 mb-3 flex items-center gap-2"><X className="w-4 h-4" /> 유료 상용 지수 (머서 등) 배제 사유</h5>
+                  <ul className="text-sm text-blue-50 space-y-3 list-disc pl-4 marker:text-red-300 leading-relaxed">
+                    <li>당사 주재원 파견 규모 대비 과도한 구독 비용 소모 방지</li>
+                    <li>최근 공공 데이터 확산에 따라 무료 기반의 공신력 있는 물가지수(UN) 대체 확보 완료</li>
+                  </ul>
                 </div>
                 <div className="bg-white/10 p-5 rounded-lg border border-white/5">
-                  <h5 className="font-bold text-green-400 mb-3 flex items-center gap-2"><CheckCircle className="w-4 h-4" /> 우리의 해결책 (UN ICSC)</h5>
-                  <p className="text-sm text-blue-50 leading-relaxed">당사는 <strong>주거비와 학비를 실비로 이미 따로 지급</strong>하고 있습니다. 주거비가 제대로 분리되지 않는 상용 지수를 쓰면 예산이 이중 지급됩니다. 따라서 <strong>'주거비 제외 지수'</strong>를 제공하는 유엔 데이터를 사용하는 것이 논리적 정답입니다.</p>
+                  <h5 className="font-bold text-green-400 mb-3 flex items-center gap-2"><CheckCircle className="w-4 h-4" /> Max [UN지수*185%, 110%] 도입 사유</h5>
+                  <ul className="text-sm text-blue-50 space-y-3 list-disc pl-4 marker:text-green-400 leading-relaxed">
+                    <li><strong>도입 목적:</strong> 주재원 처우 삭감이 아닌 회사 비용 효율화 및 표준 지수 반영</li>
+                    <li><strong>하한선(110%) 방어 로직:</strong> 개발도상국 파견 시에도 필수 base 생계비 보장</li>
+                    <li>관세 및 운송 비용이 가산된 한국산 공산품/식자재 소비 환경 필수 반영</li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -856,18 +863,23 @@ function App() {
 
       const rawHostCol = mergedIndices[formData.hostCity] || 100;
       const normalizedColMultiplier = rawHostCol / 90;
+      
+      // [신규 산식 적용: Max(UN상대지수 * 185%, 110%)]
+      const appliedColMultiplier = Math.max(normalizedColMultiplier * 1.85, 1.10);
+
       const targetYear = new Date().getFullYear();
       const singleSiPercentage = calculateSIPercentage(baseSalaryNum, 'single', targetYear, customSiMap) || 0;
       const finalSiPercentage = calculateSIPercentage(baseSalaryNum, formData.familyType || 'single', targetYear, customSiMap) || 0;
       const baseSIAmount = baseSalaryNum * (singleSiPercentage / 100);
       const finalSIAmount = baseSalaryNum * (finalSiPercentage / 100);
       const familyMultiplier = singleSiPercentage > 0 ? (finalSiPercentage / singleSiPercentage).toFixed(4) : "1.0000";
-      const overseasLivingCostKRW = finalSIAmount * normalizedColMultiplier;
+      
+      const overseasLivingCostKRW = finalSIAmount * appliedColMultiplier;
       const finalLocalCurrencyAmount = overseasLivingCostKRW / exchangeRateNum;
 
       setResult({
         baseSalary: baseSalaryNum, singleSiPercentage, finalSiPercentage, baseSIAmount, familyMultiplier, finalSIAmount,
-        normalizedColMultiplier, rawHostCol, seoulBaseRpi: 90, overseasLivingCostKRW, exchangeRate: exchangeRateNum,
+        normalizedColMultiplier, appliedColMultiplier, rawHostCol, seoulBaseRpi: 90, overseasLivingCostKRW, exchangeRate: exchangeRateNum,
         currency: formData.currency || 'KRW', finalLocalCurrencyAmount, targetYear
       });
     } catch (error) { alert('계산 중 오류가 발생했습니다.\n(에러 상세: ' + error.message + ')'); }
