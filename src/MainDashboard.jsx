@@ -286,11 +286,11 @@ function Dashboard({ formData, result, adminData, isDataLoading, customSiMap }) 
                 <p className="text-sm text-hcGray-800">{formData?.familyType === 'family' ? <>가족 동반에 따른 가산율 적용(독립 비율 <strong>{result?.finalSiPercentage?.toFixed(2)}%</strong>, 단신 대비 <strong>{result?.familyMultiplier}배</strong>)에 따라 최종 국내 기준액은 <strong>{formatCurrency(result?.finalSIAmount, 'KRW')}</strong>입니다.</> : <>단신 부임으로 별도의 가산율 적용 없이 최종 국내 기준액은 <strong>{formatCurrency(result?.finalSIAmount, 'KRW')}</strong>입니다.</>}</p>
               </div>
             </div>
-            <div className="relative z-10 flex items-start gap-4">
+           <div className="relative z-10 flex items-start gap-4">
               <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-sm shrink-0 border-4 border-white shadow-sm">3</div>
               <div className="bg-purple-50/50 p-4 rounded-lg border border-purple-100 flex-1">
                 <h4 className="font-bold text-purple-900 mb-1">도시별 물가 보전(COL)</h4>
-                <p className="text-sm text-purple-800">서울(100) 대비 파견지 상대 지수 <strong>{(result?.normalizedColMultiplier * 100)?.toFixed(1)}</strong>를 곱하여 보전 될 금액은 <strong>{formatCurrency(result?.overseasLivingCostKRW, 'KRW')}</strong>입니다.</p>
+                <p className="text-sm text-purple-800">서울(100) 대비 파견지 상대 지수 <strong>{(result?.normalizedColMultiplier * 100)?.toFixed(1)}</strong>를곱하여 보전 될 금액은 <strong>{formatCurrency(result?.overseasLivingCostKRW, 'KRW')}</strong>입니다.</p>
               </div>
             </div>
             <div className="relative z-10 flex items-start gap-4">
