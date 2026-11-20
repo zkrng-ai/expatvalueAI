@@ -421,7 +421,7 @@ function AdminModal({ adminData, setAdminData, customSiMap = {}, setCustomSiMap,
 
   const PUBLIC_DATA_API_KEY = "71ad5c343fe88b70b69bb5ff3557d13557a1277052ef7c5ad3facc254b847fd8";
   const IBK_EXCHANGE_ENDPOINT = "https://apis.data.go.kr/B190021/mmavXrtInfoInq/getmmavXrtInfoInq";
-  const SUPPORTED_API_CURRENCIES = ['USD', 'JPY', 'EUR', 'GBP', 'AUD', 'CAD', 'CHF', 'CNY', 'HKD', 'NZD', 'SEK', 'SGD', 'INR', 'BRL'];
+  const SUPPORTED_API_CURRENCIES = ['USD', 'JPY', 'EUR', 'GBP', 'AUD', 'CAD', 'CHF', 'CNY', 'HKD', 'NZD', 'SEK', 'SGD', 'INR', 'BRL', 'THB'];
 
   const fetchPublicExchangeRates = async () => {
     setIsFetchingRates(true);
@@ -678,7 +678,7 @@ function CustomCityModal({ onClose, onSave, extendedRpiDb = [] }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const wrapperRef = useRef(null);
-  const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'VND', 'SGD', 'SAR', 'KRW', 'CAD', 'AUD', 'AED', 'INR', 'BRL'];
+  const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'VND', 'SGD', 'SAR', 'KRW', 'CAD', 'AUD', 'AED', 'INR', 'BRL', 'THB'];
 
   useEffect(() => {
     function handleClickOutside(event) { if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setShowSuggestions(false); }
@@ -899,6 +899,29 @@ function App() {
     const updatedCities = [...(customCities || []), cityData];
     setCustomCities(updatedCities);
     localStorage.setItem('expatValueCustomCities', JSON.stringify(updatedCities));
+
+    // 관리자 설정(adminData)에도 새 도시의 물가지수 및 통화(환율) 입력 칸 자동 생성
+    if (cityData && cityData.city) {
+      setAdminData(prev => {
+        const next = JSON.parse(JSON.stringify(prev || UN_ICSC_DATA));
+        if (!next.colData) next.colData = { indices: {} };
+        if (!next.colData.indices) next.colData.indices = {};
+        next.colData.indices[cityData.city] = cityData.rpi;
+
+        if (!next.cityCurrency) next.cityCurrency = {};
+        next.cityCurrency[cityData.city] = cityData.currency;
+
+        if (!next.exchangeData) next.exchangeData = { meta: { targetYear: new Date().getFullYear() - 1 }, rates: {} };
+        if (!next.exchangeData.rates) next.exchangeData.rates = {};
+        if (cityData.currency && next.exchangeData.rates[cityData.currency] === undefined) {
+          next.exchangeData.rates[cityData.currency] = 0;
+        }
+
+        localStorage.setItem('expatValueAdminData_v5', JSON.stringify(next));
+        return next;
+      });
+    }
+
     setFormData(prev => ({ ...prev, hostCity: cityData?.city || '' }));
     setIsCustomCityOpen(false);
   }
@@ -909,7 +932,10 @@ function App() {
     let mergedCurrencies = { ...(adminData?.cityCurrency || {}) };
     if (customCities && Array.isArray(customCities)) {
       customCities.forEach(c => {
-        if (c && c.city) { mergedIndices[c.city] = c.rpi; mergedCurrencies[c.city] = c.currency; }
+        if (c && c.city) {
+          if (mergedIndices[c.city] === undefined) mergedIndices[c.city] = c.rpi;
+          if (mergedCurrencies[c.city] === undefined) mergedCurrencies[c.city] = c.currency;
+        }
       });
     }
     const rates = adminData?.exchangeData?.rates || {};
@@ -936,7 +962,11 @@ function App() {
       const baseSalaryNum = parseInt(formData.baseSalary.replace(/,/g, ''), 10) || 0;
       const exchangeRateNum = parseFloat(formData.exchangeRate) || 1;
       let mergedIndices = { ...(adminData?.colData?.indices || {}) };
-      if (customCities && customCities.length > 0) customCities.forEach(c => { mergedIndices[c.city] = c.rpi; });
+      if (customCities && customCities.length > 0) {
+        customCities.forEach(c => {
+          if (c && c.city && mergedIndices[c.city] === undefined) mergedIndices[c.city] = c.rpi;
+        });
+      }
 
       const rawHostCol = mergedIndices[formData.hostCity] || 100;
       const normalizedColMultiplier = rawHostCol / 90;
