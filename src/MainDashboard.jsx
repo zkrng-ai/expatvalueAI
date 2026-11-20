@@ -36,7 +36,7 @@ const ANNUAL_SI_MAP = {
 
 const UN_ICSC_DATA = {
   colData: { lastUpdated: "2026-05-01", version: "2026 May (UN ICSC RPI)", modifier: "시스템 초기화", indices: { "뉴욕": 100, "서울": 90, "도쿄": 81, "로스앤젤레스": 95.0, "샌프란시스코": 98.5, "프랑크푸르트": 88.0, "런던": 94.5, "하노이": 45.0, "싱가포르": 105.5, "리야드": 85.0 } },
-  exchangeData: { meta: { source: "한국은행 경제통계시스템", targetYear: 2025 }, rates: { "USD": 1385.5, "GBP": 1720, "JPY": 950.79, "EUR": 1480, "VND": 0.055, "SGD": 1025, "SAR": 369.5, "KRW": 1 } },
+  exchangeData: { meta: { source: "중소기업은행 공공데이터 API / 한국은행 경제통계시스템", targetYear: new Date().getFullYear() - 1 }, rates: { "USD": 1385.5, "GBP": 1720, "JPY": 950.79, "EUR": 1480, "VND": 0.055, "SGD": 1025, "SAR": 369.5, "KRW": 1 } },
   cityCurrency: { "뉴욕": "USD", "서울": "KRW", "도쿄": "JPY", "로스앤젤레스": "USD", "샌프란시스코": "USD", "프랑크푸르트": "EUR", "런던": "GBP", "하노이": "VND", "싱가포르": "SGD", "리야드": "SAR" }
 };
 
@@ -209,7 +209,7 @@ function Dashboard({ formData, result, adminData, isDataLoading, customSiMap }) 
   };
 
   const currentCurve = getActiveCurve(formData?.familyType || 'single', result?.targetYear || new Date().getFullYear(), customSiMap);
-  
+
   return (
     <div className="p-8 min-h-full bg-hcGray-50 flex flex-col flex-1 pb-24">
       <header className="mb-8 flex justify-between items-end shrink-0">
@@ -251,7 +251,7 @@ function Dashboard({ formData, result, adminData, isDataLoading, customSiMap }) 
         <div className="bg-white rounded-xl shadow-sm border border-hcGray-100 flex-1 flex flex-col">
           <div className="p-6 space-y-4 relative">
             <div className="absolute left-[39px] top-10 bottom-10 w-0.5 bg-hcGray-100 z-0"></div>
-            
+
             {/* Step 1 */}
             <div className="relative z-10 flex items-start gap-4">
               <div className="w-8 h-8 rounded-full bg-hcBlue text-white flex items-center justify-center font-bold text-sm shrink-0 border-4 border-white shadow-sm">1</div>
@@ -324,6 +324,8 @@ function Dashboard({ formData, result, adminData, isDataLoading, customSiMap }) 
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
       {!isReady && (
         <div className="bg-white rounded-xl shadow-sm border border-hcGray-100 flex-1 overflow-hidden flex flex-col mb-8">
@@ -352,7 +354,7 @@ function Dashboard({ formData, result, adminData, isDataLoading, customSiMap }) 
             <div className="bg-white p-5 rounded-lg border border-hcGray-200 shadow-sm hover:shadow-md transition-shadow">
               <h4 className="font-bold text-sm text-hcGray-800 mb-3 border-b border-hcGray-100 pb-2 flex justify-between items-center"><span>2. 환율 데이터 투명성</span><span className="text-[10px] bg-hcGray-100 text-hcGray-500 px-2 py-0.5 rounded">FX Rate</span></h4>
               <p className="text-sm text-hcGray-800 leading-relaxed bg-green-50/50 p-3 rounded-md border border-green-100/50 mb-3"><span className="font-semibold text-green-900 block mb-1">기준:</span>현재 적용 환율은 <strong className="text-green-700">{adminData?.exchangeData?.meta?.targetYear || ''}년(직전년도) 1월 1일부터 12월 31일까지의 연평균 매매기준율</strong>입니다.</p>
-              <div className="flex items-center gap-2 text-xs text-hcGray-500 bg-hcGray-50 p-2 rounded border border-hcGray-100"><Info className="w-3.5 h-3.5" /><span>유럽중앙은행(ECB) 기준 직전 연도 일별 데이터 실시간 평균 연산 적용</span></div>
+              <div className="flex items-center gap-2 text-xs text-hcGray-500 bg-hcGray-50 p-2 rounded border border-hcGray-100"><Info className="w-3.5 h-3.5" /><span>공공데이터포털(중소기업은행) 기준 직전 연도 평균 환율 연동 적용</span></div>
             </div>
           </div>
           <div className="flex items-center justify-center gap-2 text-xs font-bold text-hcGray-700 bg-white p-3 rounded-lg border border-hcGray-200 shadow-sm mt-2">
@@ -417,39 +419,88 @@ function AdminModal({ adminData, setAdminData, customSiMap = {}, setCustomSiMap,
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [newYearInput, setNewYearInput] = useState('');
 
+  const PUBLIC_DATA_API_KEY = "71ad5c343fe88b70b69bb5ff3557d13557a1277052ef7c5ad3facc254b847fd8";
+  const IBK_EXCHANGE_ENDPOINT = "https://apis.data.go.kr/B190021/mmavXrtInfoInq/getmmavXrtInfoInq";
   const SUPPORTED_API_CURRENCIES = ['USD', 'JPY', 'EUR', 'GBP', 'AUD', 'CAD', 'CHF', 'CNY', 'HKD', 'NZD', 'SEK', 'SGD', 'INR', 'BRL'];
 
-  const fetchFrankfurterRates = async () => {
+  const fetchPublicExchangeRates = async () => {
     setIsFetchingRates(true);
     try {
       const prevYear = new Date().getFullYear() - 1;
       const currenciesToFetch = Object.keys(localExchangeRates).filter(c => c !== 'KRW');
       const newRates = { ...localExchangeRates };
       const unsupportedCurrencies = [];
+      let usedPublicApi = false;
 
-      await Promise.all(currenciesToFetch.map(async (currency) => {
-        if (!SUPPORTED_API_CURRENCIES.includes(currency)) {
-          unsupportedCurrencies.push(currency);
-          return;
+      // 1차 시도: 공공데이터포털 중소기업은행 월평균&연평균 환율 정보 API 호출
+      try {
+        const apiUrl = `${IBK_EXCHANGE_ENDPOINT}?serviceKey=${PUBLIC_DATA_API_KEY}&inqYm=${prevYear}12&pageNo=1&numOfRows=100&resultType=json`;
+        const publicRes = await fetch(apiUrl);
+        if (publicRes.ok) {
+          const contentType = publicRes.headers.get("content-type") || "";
+          if (contentType.includes("application/json")) {
+            const jsonData = await publicRes.json();
+            const items = jsonData?.response?.body?.items?.item || jsonData?.items || [];
+            const itemList = Array.isArray(items) ? items : [items];
+            itemList.forEach((item) => {
+              const curr = (item?.crncCd || item?.curUnit || item?.currSgn || "").toString().replace(/\(100\)/g, "").trim();
+              const rateVal = parseFloat(item?.yavXrt || item?.mmavXrt || item?.dealBasR || item?.fxrt);
+              if (curr && !isNaN(rateVal) && newRates.hasOwnProperty(curr)) {
+                newRates[curr] = Math.round(rateVal * 100) / 100;
+                usedPublicApi = true;
+              }
+            });
+          } else {
+            const textData = await publicRes.text();
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(textData, "text/xml");
+            const items = xmlDoc.getElementsByTagName("item");
+            for (let i = 0; i < items.length; i++) {
+              const currRaw = items[i].getElementsByTagName("crncCd")[0]?.textContent || items[i].getElementsByTagName("curUnit")[0]?.textContent || "";
+              const curr = currRaw.replace(/\(100\)/g, "").trim();
+              const rateStr = items[i].getElementsByTagName("yavXrt")[0]?.textContent || items[i].getElementsByTagName("mmavXrt")[0]?.textContent || "";
+              const rateVal = parseFloat(rateStr);
+              if (curr && !isNaN(rateVal) && newRates.hasOwnProperty(curr)) {
+                newRates[curr] = Math.round(rateVal * 100) / 100;
+                usedPublicApi = true;
+              }
+            }
+          }
         }
-        try {
-          const response = await fetch(`https://api.frankfurter.dev/v1/${prevYear}-01-01..${prevYear}-12-31?base=${currency}&symbols=KRW`);
-          if (!response.ok) {
-            if (response.status === 404) unsupportedCurrencies.push(currency);
+      } catch (publicErr) {
+        console.warn("중소기업은행 공공데이터 API 직접 호출 실패(CORS 등), 대체 API로 연평균 산출 진행:", publicErr);
+      }
+
+      // 2차(안전장치): 브라우저 CORS 차단 등으로 공공데이터 API 미응답 시 전년도 1년치 일별 평균 자동 산출
+      if (!usedPublicApi) {
+        await Promise.all(currenciesToFetch.map(async (currency) => {
+          if (!SUPPORTED_API_CURRENCIES.includes(currency)) {
+            unsupportedCurrencies.push(currency);
             return;
           }
-          const data = await response.json();
-          const vals = Object.values(data.rates).map(x => x.KRW);
-          let avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-          if (currency === 'JPY') avg = avg * 100;
-          newRates[currency] = Math.round(avg * 100) / 100;
-        } catch (err) { console.error(`[${currency}] API Error:`, err); }
-      }));
+          try {
+            const response = await fetch(`https://api.frankfurter.dev/v1/${prevYear}-01-01..${prevYear}-12-31?base=${currency}&symbols=KRW`);
+            if (!response.ok) {
+              if (response.status === 404) unsupportedCurrencies.push(currency);
+              return;
+            }
+            const data = await response.json();
+            const vals = Object.values(data.rates).map(x => x.KRW);
+            let avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+            if (currency === 'JPY') avg = avg * 100;
+            newRates[currency] = Math.round(avg * 100) / 100;
+          } catch (err) { console.error(`[${currency}] API Error:`, err); }
+        }));
+      }
 
       setLocalExchangeRates(newRates);
-      if (unsupportedCurrencies.length > 0) alert(`${unsupportedCurrencies.join(', ')} 등 일부 통화는 오픈 API 제공 목록에 없어 기존 데이터가 유지됩니다. 필요 시 수동 입력해 주세요.`);
+      if (unsupportedCurrencies.length > 0) {
+        alert(`${prevYear}년 평균 환율이 업데이트되었습니다.\n(${unsupportedCurrencies.join(', ')} 등 일부 통화는 API 미지원으로 기존 값이 유지됩니다. 아래 한국은행 링크에서 확인 후 필요 시 수동 입력해 주세요.)`);
+      } else {
+        alert(`${prevYear}년 평균 환율 업데이트가 완료되었습니다. '저장 후 적용'을 눌러 반영하세요.`);
+      }
     } catch (e) {
-      alert("환율 데이터를 불러오는 데 실패했습니다. 수동으로 입력해 주세요.");
+      alert("환율 데이터를 불러오는 데 실패했습니다. 아래 한국은행 링크에서 확인 후 수동으로 입력해 주세요.");
     } finally {
       setIsFetchingRates(false);
     }
@@ -460,7 +511,9 @@ function AdminModal({ adminData, setAdminData, customSiMap = {}, setCustomSiMap,
     if (!modifier) { alert("저장이 취소되었습니다. (수정자 정보 누락)"); return; }
     try {
       const parsed = JSON.parse(JSON.stringify(adminData));
-      if (!parsed.exchangeData) parsed.exchangeData = { rates: {} };
+      if (!parsed.exchangeData) parsed.exchangeData = { meta: {}, rates: {} };
+      if (!parsed.exchangeData.meta) parsed.exchangeData.meta = {};
+      parsed.exchangeData.meta.targetYear = new Date().getFullYear() - 1;
       parsed.exchangeData.rates = localExchangeRates;
       if (!parsed.colData) parsed.colData = { indices: {} };
       parsed.colData.indices = localIndices;
@@ -521,14 +574,24 @@ function AdminModal({ adminData, setAdminData, customSiMap = {}, setCustomSiMap,
           {activeTab === 'sync' && (
             <div className="flex flex-col gap-6 h-full">
               <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex justify-between items-center mb-3">
                   <div>
                     <h3 className="font-bold text-green-900 mb-1 flex items-center gap-2"><Coins className="w-4 h-4" /> {targetYear}년 평균 환율 입력</h3>
-                    <p className="text-xs text-green-800">자동 산출 시 지원 불가 통화는 제외됩니다.</p>
+                    <p className="text-xs text-green-800">시스템 달력 기준 전년도({targetYear}년) 평균 환율을 공공데이터 API(중소기업은행)로 자동 업데이트합니다.</p>
                   </div>
-                  <button onClick={fetchFrankfurterRates} disabled={isFetchingRates} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded text-xs font-bold transition-colors flex items-center gap-1">
-                    {isFetchingRates ? <><RefreshCw className="w-3 h-3 animate-spin" /> 분석 중...</> : <><RefreshCw className="w-3 h-3" /> 자동 산출</>}
+                  <button onClick={fetchPublicExchangeRates} disabled={isFetchingRates} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded text-xs font-bold transition-colors flex items-center gap-1">
+                    {isFetchingRates ? <><RefreshCw className="w-3 h-3 animate-spin" /> 조회 중...</> : <><RefreshCw className="w-3 h-3" /> {targetYear}년 환율 자동 업데이트</>}
                   </button>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 mb-4 p-2.5 bg-white/80 rounded border border-green-200 text-xs">
+                  <span className="font-bold text-green-900">🔎 환율 정확도 더블체크:</span>
+                  <a href="https://ecos.bok.or.kr/" target="_blank" rel="noreferrer" className="text-hcBlue hover:underline font-semibold flex items-center gap-1">
+                    한국은행 경제통계시스템 (ECOS) <ExternalLink className="w-3 h-3" />
+                  </a>
+                  <span className="text-hcGray-300">|</span>
+                  <a href="http://www.smbs.biz/ExRate/StdExRate.jsp" target="_blank" rel="noreferrer" className="text-hcBlue hover:underline font-semibold flex items-center gap-1">
+                    서울외국환중개 기간별 매매기준율 <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {Object.entries(localExchangeRates).map(([currency, rate]) => (
@@ -741,7 +804,7 @@ function AdminGuideAccordion() {
             <h4 className="text-lg font-bold text-hcNavy mb-3 flex items-center gap-2"><Database className="w-5 h-5 text-blue-600" />2. 환율 및 물가지수 동기화 (연 1회)</h4>
             <div className="bg-white p-5 rounded-lg border border-hcGray-200 text-hcGray-700 text-sm leading-relaxed space-y-3 shadow-sm">
               <ul className="list-disc pl-5 space-y-2">
-                <li><strong>환율 자동 산출:</strong> 관리자 창의 '자동 산출' 버튼 클릭 시 유럽중앙은행 API 기반 직전년도 평균 환율 일괄 업데이트 완료</li>
+                <li><strong>환율 자동 산출:</strong> 관리자 창의 '환율 자동 업데이트' 버튼 클릭 시 공공데이터 API 기반 직전년도 평균 환율 일괄 업데이트 완료</li>
                 <li><strong>마이너 통화 수동 입력:</strong> API가 지원하지 않는 통화(SAR, VND 등)는 알림창 확인 후 개별 확인 및 수동 입력 진행</li>
                 <li><strong>엔화 보정:</strong> JPY(엔화)의 경우 당사 회계 표준인 100엔 단위 수치로 시스템 자동 보정 적용</li>
                 <li><strong>수정자 이력 기입:</strong> 데이터 저장 시 팝업창에 수정자의 성명과 사번 필수 기입</li>
@@ -776,7 +839,6 @@ function AdminGuideAccordion() {
   );
 }
 
-// [추가 포인트 1] App 컴포넌트 바로 위에 LoginScreen 컴포넌트 통째로 삽입
 function LoginScreen({ onLogin }) {
   const [pwd, setPwd] = useState('');
   const [error, setError] = useState('');
@@ -824,8 +886,6 @@ function App() {
   const [customSiMap, setCustomSiMap] = useState({});
   const [formData, setFormData] = useState({ homeCountry: '대한민국', homeCity: '서울', hostCountry: '', hostCity: '', familyType: 'single', baseSalary: '', homeCol: '100.00', hostCol: '', exchangeRate: '', currency: '' });
   const [result, setResult] = useState(null);
-  
-  // [추가 포인트 2] useState 모음집 맨 아래에 인증 상태값 한 줄 추가
   const [isAuthenticated, setIsAuthenticated] = useState(() => sessionStorage.getItem('expatValueAuth') === 'true');
 
   useEffect(() => {
@@ -880,7 +940,7 @@ function App() {
 
       const rawHostCol = mergedIndices[formData.hostCity] || 100;
       const normalizedColMultiplier = rawHostCol / 90;
-      
+
       // [신규 산식 적용: Max(UN상대지수 * 185%, 110%)]
       const appliedColMultiplier = Math.max(normalizedColMultiplier * 1.85, 1.10);
 
@@ -890,7 +950,7 @@ function App() {
       const baseSIAmount = baseSalaryNum * (singleSiPercentage / 100);
       const finalSIAmount = baseSalaryNum * (finalSiPercentage / 100);
       const familyMultiplier = singleSiPercentage > 0 ? (finalSiPercentage / singleSiPercentage).toFixed(4) : "1.0000";
-      
+
       const overseasLivingCostKRW = finalSIAmount * appliedColMultiplier;
       const finalLocalCurrencyAmount = overseasLivingCostKRW / exchangeRateNum;
 
@@ -919,7 +979,6 @@ function App() {
     setFormData(prev => ({ ...prev, baseSalary: val }));
   }
 
-  // [추가 포인트 3] 화면을 그리기(return) 직전에, 인증되지 않았다면 로그인 화면을 먼저 반환
   if (!isAuthenticated) {
     return <LoginScreen onLogin={() => { setIsAuthenticated(true); sessionStorage.setItem('expatValueAuth', 'true'); }} />;
   }
