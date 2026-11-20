@@ -845,7 +845,7 @@ function LoginScreen({ onLogin }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (pwd === 'HCC0109') {
+    if (pwd === '01077270743') {
       onLogin();
     } else {
       setError('접근 권한이 없습니다. 비밀번호를 다시 확인하십시오.');
@@ -986,7 +986,7 @@ function App() {
   return (
     <div className="flex min-h-screen bg-hcGray-50">
       <div className="w-[30%] min-w-[350px] max-w-[420px] shadow-lg z-10 sticky top-0 h-screen overflow-y-auto">
-        <Sidebar formData={formData} onChange={handleInputChange} onSalaryChange={handleSalaryChange} onCalculate={handleCalculate} onReset={handleReset} onOpenAdmin={() => { const pwd = window.prompt("관리자 비밀번호를 입력하세요."); if (pwd === "hc2026") setIsAdminOpen(true); else if (pwd !== null) alert("접근 권한이 없습니다."); }} isDataLoading={isDataLoading} customCities={customCities} />
+        <Sidebar formData={formData} onChange={handleInputChange} onSalaryChange={handleSalaryChange} onCalculate={handleCalculate} onReset={handleReset} onOpenAdmin={() => { const pwd = window.prompt("관리자 비밀번호를 입력하세요."); if (pwd === "01077270743") setIsAdminOpen(true); else if (pwd !== null) alert("접근 권한이 없습니다."); }} isDataLoading={isDataLoading} customCities={customCities} />
       </div>
       <div className="flex-1 min-h-screen relative flex flex-col">
         <Dashboard formData={formData} result={result} adminData={adminData} isDataLoading={isDataLoading} customSiMap={customSiMap} activeCurve={activeCurve} />
